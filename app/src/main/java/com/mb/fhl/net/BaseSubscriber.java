@@ -30,21 +30,37 @@ public class BaseSubscriber<T> extends Subscriber<T> {
         if (!NetStateUtils.isConnected(mContext)) {
             this.onError(new ApiException(ApiErrorCode.ERROR_NO_INTERNET,"无网络连接"));
         }
+
+        else {
+            if (mDialog==null){
+                mDialog = new LoadingDialog(mContext);
+            }
+            mDialog.setCancelable(false);
+            mDialog.setCanceledOnTouchOutside(false);
+            mDialog.show();
+
+        }
     }
 
     @Override
     public void onCompleted() {
-
+        if (mDialog!=null && mDialog.isShowing()){
+            mDialog.dismiss();
+        }
     }
 
     @Override
     public void onError(Throwable e) {
         ApiErrorHelper.handleCommonError(mContext, e);
-
+        if (mDialog!=null && mDialog.isShowing()){
+            mDialog.dismiss();
+        }
     }
 
     @Override
     public void onNext(T t) {
-
+        if (mDialog!=null && mDialog.isShowing()){
+            mDialog.dismiss();
+        }
     }
 }

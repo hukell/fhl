@@ -24,6 +24,7 @@ public class ShopBean {
     public int totalPage;
     public int currentPage;
     public int pageSize;
+
     public List<OrderinfoBean> orderinfo;
 
     public static class OrderinfoBean {
@@ -47,9 +48,11 @@ public class ShopBean {
         public String customername;
         public String customertel;
         public String goodstotal;
+
         public String orderstatus;
+        public int orderStyle;
+
         public String shopstatus;
-        @SerializedName("eat-in")
         public EatinBean eatin;
         public List<GoodsBean> goods;
         public List<DeliveryinfoBean> deliveryinfo;

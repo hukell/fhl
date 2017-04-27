@@ -51,4 +51,33 @@ public interface  ApiService {
     Observable<BaseBean<ShopBean>> getMerchantOrderList(@QueryMap HashMap<String, Object> params);
 
 
+     /**
+     * 商户确认外卖订单
+     */
+    @FormUrlEncoded
+    @POST("merchantConfirmTakeoutOrder")
+    Observable<BaseBean> merchantConfirmTakeoutOrder(@FieldMap HashMap<String, Object> params);
+
+     /**
+     * 退款
+     */
+    @FormUrlEncoded
+    @POST("merchantOrderRefund")
+    Observable<BaseBean> merchantOrderRefund(@FieldMap HashMap<String, Object> params);
+
+     /**
+     * 打印订单
+     */
+    @FormUrlEncoded
+    @POST("merchantPrintOrder")
+    Observable<BaseBean> merchantPrintOrder(@FieldMap HashMap<String, Object> params);
+
+    /**
+     *
+     商户确认堂吃订单
+     */
+    @FormUrlEncoded
+    @POST("merchantConfirmEatinOrder")
+    Observable<BaseBean> merchantConfirmEatinOrder(@FieldMap HashMap<String, Object> params);
+
 }

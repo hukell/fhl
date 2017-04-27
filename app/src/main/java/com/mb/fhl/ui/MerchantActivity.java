@@ -1,29 +1,37 @@
 package com.mb.fhl.ui;
 
-import android.content.Intent;
+import android.animation.ValueAnimator;
+import android.app.Activity;
+import android.support.annotation.LayoutRes;
+import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
+import com.chad.library.adapter.base.BaseViewHolder;
+import com.chad.library.adapter.base.listener.OnItemChildClickListener;
 import com.mb.fhl.R;
-import com.mb.fhl.adapter.MerchantAdapter;
 import com.mb.fhl.base.BaseActivity;
 import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.ChangBean;
-import com.mb.fhl.models.OrderBean;
+import com.mb.fhl.models.PhoneBean;
 import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.net.Api;
 import com.mb.fhl.net.BaseSubscriber;
 import com.mb.fhl.utils.DialogUtils;
+import com.mb.fhl.utils.DisplayUtil;
+import com.mb.fhl.utils.ImageLoader;
 import com.mb.fhl.utils.RxBus;
 import com.mb.fhl.utils.TimeUtils;
+import com.mb.fhl.utils.TypeUtils;
 import com.mb.fhl.utils.UserManager;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 
@@ -39,8 +47,6 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
-import static android.R.attr.name;
-import static android.R.attr.type;
 import static com.mb.fhl.R.id.tv_change;
 
 public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSelectedListener,
@@ -82,6 +88,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     private int mOrderStytle = 1;
     private int mOrderStatus = 1;
     private int  PAGE_SIZE = 20;
+    private Subscription mSubscribe1;
 
 
     @Override
@@ -92,6 +99,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     @Override
     protected void initView() {
         Titles = new String[]{"待处理", "进行中", "已完成"};
+        ImageLoader.loadCicleImage(this,UserManager.getIns().getUser().logo,R.mipmap.img_home,mImgHead);
         mNow = Calendar.getInstance();
         mTvDate.setText((1+mNow.get(Calendar.MONTH))+"月"+mNow.get(Calendar.DAY_OF_MONTH)+"日");
 
@@ -127,16 +135,28 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                                   getData();
                               }
                           });
+
+        mSubscribe1 = RxBus.getInstance().toObserverable(PhoneBean.class)
+                          .subscribe(new Action1<PhoneBean>() {
+                              @Override
+                              public void call(PhoneBean phoneBean) {
+                                  String substring = phoneBean.s.substring(phoneBean.s.length() - 11, phoneBean.s.length());
+
+                                  mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverytel=phoneBean.s.substring(phoneBean.s.length()-11,phoneBean.s.length());
+                                  mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverystaff=phoneBean.s.substring(0,phoneBean.s.length()-12);
+                                  pullToRefreshAdapter.notifyItemChanged(phoneBean.point);
+                              }
+                          });
         getData();
 
     }
-
     @Override
     protected void releaseResource() {
         if (!mSubscribe.isUnsubscribed()){
             mSubscribe.unsubscribe();
+        } if (!mSubscribe1.isUnsubscribed()){
+            mSubscribe1.unsubscribe();
         }
-
     }
 
     @OnClick({R.id.img_head, tv_change, R.id.tv_date})
@@ -191,7 +211,6 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     //刷新
     @Override
     public void onRefresh() {
-        pullToRefreshAdapter.setEnableLoadMore(false);
         page=1;
         getData();
     }
@@ -199,7 +218,6 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     //加载更多  棒棒鸡
     @Override
     public void onLoadMoreRequested() {
-        mSwipeRefreshLayout.setEnabled(false);
         if (pullToRefreshAdapter.getData().size() < PAGE_SIZE) {
             pullToRefreshAdapter.loadMoreEnd(true);
         }else {
@@ -212,7 +230,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     @Override
     public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
         String date =(++monthOfYear)+"月"+ dayOfMonth +"日";
-        mDate1 = year+"-"+(++monthOfYear)+"-"+ dayOfMonth +"日";
+        mDate1 = year+"-"+(monthOfYear)+"-"+ dayOfMonth;
 
         mYear = year;
         mMonthOfYear = monthOfYear-1;
@@ -222,6 +240,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         getData();
     }
 
+    //请求列表数据
     public void getData(){
         HashMap<String, Object> params = new HashMap<>();
         params.put("orderDate",mDate1);
@@ -239,9 +258,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                     public void onNext(BaseBean<ShopBean> shopBeanBaseBean) {
                         super.onNext(shopBeanBaseBean);
                         mOrderinfo = shopBeanBaseBean.getData().orderinfo;
-
-
-
+                        mTvPrice.setText(mTvDate.getText().toString()+ TypeUtils.getString(mOrderStatus)+shopBeanBaseBean.getData().totalCount+"单，总额"+shopBeanBaseBean.getData().totalAmount+"元");
                         if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
                             mSwipeRefreshLayout.setRefreshing(false);
                             pullToRefreshAdapter.setEnableLoadMore(true);
@@ -252,66 +269,237 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                         }else {
                             pullToRefreshAdapter.addData(mOrderinfo);
                             pullToRefreshAdapter.loadMoreComplete();
-                            mSwipeRefreshLayout.setEnabled(true);
+
                         }
 
                     }
                     @Override
                     public void onCompleted() {
                         super.onCompleted();
+                        mSwipeRefreshLayout.setEnabled(true);
                         if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
                             mSwipeRefreshLayout.setRefreshing(false);
                             pullToRefreshAdapter.setEnableLoadMore(true);
-                        }else {
-                            Toast.makeText(MerchantActivity.this, "加载失败", Toast.LENGTH_LONG).show();
-                            pullToRefreshAdapter.loadMoreFail();
                         }
                     }
 
                     @Override
                     public void onError(Throwable e) {
                         super.onError(e);
+                        mSwipeRefreshLayout.setEnabled(true);
                         if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
                             mSwipeRefreshLayout.setRefreshing(false);
                             pullToRefreshAdapter.setEnableLoadMore(true);
                         }else {
-                            Toast.makeText(MerchantActivity.this, "加载失败", Toast.LENGTH_LONG).show();
                             pullToRefreshAdapter.loadMoreFail();
                         }
+                    }
+                });
+    }
+
+
+
+    //商户确认外卖订单
+      public void ConfirmTakeoutOrder(final int point, String ordernum, String deliverid){
+
+          HashMap<String, Object> params = new HashMap<>();
+          params.put("orderId",ordernum);
+          params.put("deliverid",deliverid);
+          params.put("userId",UserManager.getIns().getUser().uid);
+          params.put("token",UserManager.getIns().getUser().accessToken);
+
+          Api.getRetrofit().merchantConfirmTakeoutOrder(params)
+                  .subscribeOn(Schedulers.io())
+                  .observeOn(AndroidSchedulers.mainThread())
+                  .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
+                      @Override
+                      public void onNext(BaseBean baseBean) {
+                          super.onNext(baseBean);
+                          mOrderinfo.remove(point);
+                          pullToRefreshAdapter.notifyDataSetChanged();
+                      }
+                  });
+
+      }
+
+      //退款
+      public void merchantOrderRefund(final int point, String ordernum){
+
+          HashMap<String, Object> params = new HashMap<>();
+          params.put("orderId",ordernum);
+          params.put("userId",UserManager.getIns().getUser().uid);
+          params.put("token",UserManager.getIns().getUser().accessToken);
+
+          Api.getRetrofit().merchantOrderRefund(params)
+                  .subscribeOn(Schedulers.io())
+                  .observeOn(AndroidSchedulers.mainThread())
+                  .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
+                      @Override
+                      public void onNext(BaseBean baseBean) {
+                          super.onNext(baseBean);
+                          mOrderinfo.remove(point);
+                          pullToRefreshAdapter.notifyDataSetChanged();
+                      }
+                  });
+
+      }
+
+
+      //商户打印订单  merchantPrintOrder
+    public void merchantPrintOrder(final int point, String ordernum){
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("orderId",ordernum);
+        params.put("userId",UserManager.getIns().getUser().uid);
+        params.put("token",UserManager.getIns().getUser().accessToken);
+
+        Api.getRetrofit().merchantPrintOrder(params)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
+                    @Override
+                    public void onNext(BaseBean baseBean) {
+                        super.onNext(baseBean);
+                    }
+                });
+
+    }
+
+    //商户确认堂吃订单
+    public void merchantConfirmEatinOrder(final int point, String ordernum){
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("orderId",ordernum);
+        params.put("userId",UserManager.getIns().getUser().uid);
+        params.put("token",UserManager.getIns().getUser().accessToken);
+
+        Api.getRetrofit().merchantConfirmEatinOrder(params)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
+                    @Override
+                    public void onNext(BaseBean baseBean) {
+                        super.onNext(baseBean);
+                        mOrderinfo.remove(point);
+                        pullToRefreshAdapter.notifyDataSetChanged();
                     }
                 });
 
     }
 
 
+    public class MerchantAdapter extends BaseQuickAdapter<ShopBean.OrderinfoBean, BaseViewHolder>{
 
-
-    /*private class ContentLinearAdapter extends RecyclerView.Adapter<ContentLinearAdapter.ListHolder>{
-        private Context mContext;
-        public List<OrderBean.DataBean> data ;
-        public ContentLinearAdapter(Context context,List<OrderBean.DataBean> data) {
-            mContext = context;
-            this.data = data;
+        public MerchantAdapter(@LayoutRes int layoutResId, @Nullable List<ShopBean.OrderinfoBean> data) {
+            super(layoutResId, data);
         }
 
-        public void resetData(List<OrderBean.DataBean> list){
-            if (page==1){
-                data = list;
-            }else {
-                data.addAll(list);
+        @Override
+        protected void convert(final BaseViewHolder helper, final ShopBean.OrderinfoBean item) {
+            final int layoutPosition = helper.getLayoutPosition();
+
+            final RecyclerView recyclerView = (RecyclerView) helper.getView(R.id.item_recyclerview);
+            TextView tvSq = (TextView) helper.getView(R.id.tv_sq);
+            final TextView tvPsPhone = (TextView) helper.getView(R.id.tv_ps_phone);
+            final TextView tvTime = (TextView) helper.getView(R.id.tv_time);
+            final TextView tvStatus = (TextView) helper.getView(R.id.tv_status);
+            final TextView tvRefundRight = (TextView) helper.getView(R.id.refund_right);
+            final TextView tvRefundLeft = (TextView) helper.getView(R.id.refund_left);
+            final TextView tvDdh = (TextView) helper.getView(R.id.tv_ddh);
+            final LinearLayout linPsName = (LinearLayout) helper.getView(R.id.lin_ps_name);
+
+            tvDdh.setText("#"+item.serialnum); //流水号
+            helper.setText(R.id.tv_zj,"￥"+item.goodstotal); //总价
+
+            tvRefundLeft.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    merchantOrderRefund(layoutPosition,item.ordernum);
+                }
+            });
+
+            if (mOrderStytle==1){ //外卖
+                linPsName.setVisibility(View.VISIBLE);
+                tvTime.setVisibility(View.VISIBLE);
+                long l = Long.parseLong(item.deliverytime);
+                tvTime.setText(TimeUtils.millis2String2(item.deliverytime)); //送达时间
+                helper.setText(R.id.tv_name,item.customername+" :"); //顾客名字
+                helper.setText(R.id.tv_phone,item.customertel);
+                helper.setText(R.id.tv_address,"地址");
+                tvPsPhone.setText(item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliverystaff+": "+item.deliveryinfo.get(0).deliverytel:"暂无配送人员");
+
+                switch (mOrderStatus){
+                    case 1:
+                        tvStatus.setText("待处理");
+                        tvRefundRight.setText("出菜");
+                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                            @Override
+                            public void onClick(View v) {
+                                ConfirmTakeoutOrder(layoutPosition,item.ordernum,item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliveryid:"");
+                            }
+                        });
+
+
+                        tvPsPhone.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                DialogUtils.showPopPhoneDown((Activity) mContext,tvPsPhone,item.deliveryinfo,layoutPosition);
+                            }
+                        });
+                        break;
+                    case 2:
+                        tvStatus.setText("进行中");
+                        tvRefundRight.setText("补打订单");
+                        //打印订单
+                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                            @Override
+                            public void onClick(View v) {
+                                merchantPrintOrder(layoutPosition,item.ordernum);
+                            }
+                        });
+                        break;
+                    case 3:
+                        tvStatus.setText("已完成");
+                        tvRefundRight.setText("补打订单");
+                        //打印订单
+                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                            @Override
+                            public void onClick(View v) {
+                                merchantPrintOrder(layoutPosition,item.ordernum);
+                            }
+                        });
+                        break;
+                }
             }
-            notifyDataSetChanged();
-        }
-        @Override
-        public ListHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View  inflate = LayoutInflater.from(mContext).inflate(R.layout.recycle_item_merchant, parent, false);
-            return new ListHolder(inflate);
-        }
+              else if (mOrderStytle==2){ //堂吃
+                tvTime.setVisibility(View.GONE);
+                helper.setText(R.id.tv_address,item.eatin.shopname+"  "+item.eatin.tablenumber+"桌");
+                linPsName.setVisibility(View.GONE);
+                helper.setText(R.id.tv_name,item.customername); //顾客名字
+                helper.setText(R.id.tv_phone,"");
+                 switch (mOrderStatus){
+                     case 1:
+                         tvStatus.setText("待处理");
+                         tvRefundRight.setText("出菜");
+                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                             @Override
+                             public void onClick(View v) {
+                                 merchantConfirmEatinOrder(layoutPosition,item.ordernum);
+                             }
+                         });
+                         break;
+                     case 2:
+                         tvStatus.setText("进行中");
+                         tvRefundRight.setText("出菜完成");
+                         break;
+                     case 3:
+                         tvStatus.setText("已完成");
+                         tvRefundRight.setText("补打订单");
+                         break;
+                 }
+            }
 
-        @Override
-        public void onBindViewHolder(final ListHolder holder, final int position) {
-
-           ItemAdapter itemAdapter = new ItemAdapter(mContext);
+            ItemAdapter itemAdapter = new ItemAdapter(mContext,item.goods);
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(mContext, LinearLayoutManager.VERTICAL, false) {
                 @Override
                 public boolean canScrollVertically() {
@@ -319,16 +507,16 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                 }
             };
 
-            holder.mRecyclerView.setLayoutManager(linearLayoutManager);
-            holder.mRecyclerView.setAdapter(itemAdapter);
+            recyclerView.setLayoutManager(linearLayoutManager);
+            recyclerView.setAdapter(itemAdapter);
 
             final int itemCount = itemAdapter.getItemCount()*40;
 
-            holder.tvSq.setOnClickListener(new View.OnClickListener() {
+            tvSq.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
 
-                    final int measuredHeight = holder.mRecyclerView.getMeasuredHeight();
+                    final int measuredHeight = recyclerView.getMeasuredHeight();
 
                     ValueAnimator anim;
 
@@ -343,47 +531,18 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                         public void onAnimationUpdate(ValueAnimator animation) {
                             float currentValue = (float) animation.getAnimatedValue();
                             long duration = animation.getDuration();
-                            LinearLayout.LayoutParams linearParams =(LinearLayout.LayoutParams) holder.mRecyclerView.getLayoutParams();
+                            LinearLayout.LayoutParams linearParams =(LinearLayout.LayoutParams) recyclerView.getLayoutParams();
                             linearParams.height = (int)currentValue;// 控件的高强制设成20
-                            holder.mRecyclerView.setLayoutParams(linearParams); //使设置好的布局参数应用到控件
+                            recyclerView.setLayoutParams(linearParams); //使设置好的布局参数应用到控件
                         }
                     });
                     anim.start();
                 }
             });
 
-
         }
 
-        @Override
-        public int getItemCount() {
-            return 6;
-        }
+    }
 
-        class ListHolder extends RecyclerView.ViewHolder{
-
-
-            private final RecyclerView mRecyclerView;
-            private final TextView tvSq;
-
-            public ListHolder(View itemView) {
-                super(itemView);
-                mRecyclerView = (RecyclerView) itemView.findViewById(R.id.item_recyclerview);
-                tvSq = (TextView) itemView.findViewById(R.id.tv_sq);
-
-            }
-
-        }
-
-        private class ClickListener implements View.OnClickListener {
-            @Override
-            public void onClick(View v) {
-                switch (v.getId()){
-                    case R.id.tv_sq:
-
-                        break;
-                }
-            }
-        }
-    }*/
 }
+

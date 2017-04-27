@@ -11,9 +11,12 @@ import android.view.ViewGroup;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.mb.fhl.R;
 import com.mb.fhl.adapter.PopDownAdapter;
 import com.mb.fhl.models.ChangBean;
+import com.mb.fhl.models.PhoneBean;
+import com.mb.fhl.models.ShopBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,31 +63,33 @@ public class DialogUtils {
 
     }
 
-    public static void showPopPhoneDown(Activity activity,View view){
+    public static void showPopPhoneDown(Activity activity, View view, List<ShopBean.OrderinfoBean.DeliveryinfoBean> deliveryinfo, final int point){
         LayoutInflater mLayoutInflater = (LayoutInflater) activity.getSystemService(LAYOUT_INFLATER_SERVICE);
         ViewGroup menuView = (ViewGroup) mLayoutInflater.inflate(R.layout.phone_down, null, true);
 
         RecyclerView recyclerView = (RecyclerView) menuView.findViewById(R.id.phone_pop_recyclerview);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
-        List<String> list = new ArrayList<>();
-        list.add("王小1:135546876585");
-        list.add("王小2:135546876585");
-        list.add("王小3:135546876585");
-        list.add("王小4:135546876585");
-        list.add("王小5:135546876585");
-        list.add("王小6:135546876585");
-        list.add("王小7:135546876585");
-        list.add("王小7:135546876585");
-        list.add("王小7:135546876585");
+        final List<String> list = new ArrayList<>();
+        for (int i = 0; i <deliveryinfo.size() ; i++) {
+            list.add(deliveryinfo.get(i).deliverystaff+":"+deliveryinfo.get(i).deliverytel);
+        }
+        list.add(deliveryinfo.get(0).deliverystaff+":"+deliveryinfo.get(0).deliverytel);
 
-
-
+        int PopHeight = list.size() * 35;
         PopDownAdapter adapter = new PopDownAdapter(R.layout.phone_item,list);
         recyclerView.setAdapter(adapter);
 
+        final PopupWindow pw = new PopupWindow(menuView, view.getWidth(),
+                DisplayUtil.dip2px(activity,PopHeight), true);
 
-        PopupWindow pw = new PopupWindow(menuView, view.getWidth(),
-                DisplayUtil.dip2px(activity,180), true);
+
+        adapter.setOnItemChildClickListener(new BaseQuickAdapter.OnItemChildClickListener() {
+            @Override
+            public void onItemChildClick(BaseQuickAdapter adapter, View view, int position) {
+                RxBus.getInstance().post(new PhoneBean(point,list.get(position)));
+                pw.dismiss();
+            }
+        });
         // 设置点击返回键使其消失，且不影响背景，此时setOutsideTouchable函数即使设置为false
         // 点击PopupWindow 外的屏幕，PopupWindow依然会消失；相反，如果不设置BackgroundDrawable
         // 则点击返回键PopupWindow不会消失，同时，即时setOutsideTouchable设置为true

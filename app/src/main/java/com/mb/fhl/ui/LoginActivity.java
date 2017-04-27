@@ -41,6 +41,7 @@ public class LoginActivity extends BaseActivity {
         if (UserManager.getIns().getUser()!=null){
             if (UserManager.getIns().getUser().userType.equals("1")){
                 startActivity(new Intent(LoginActivity.this,MerchantActivity.class));
+                finish();
             }else {
                 startActivity(new Intent(LoginActivity.this,HomeActivity.class));
                 finish();

@@ -180,6 +180,7 @@ public class TimeUtils {
      * 注意：SimpleDateFormat不是线程安全的，线程安全需用{@code ThreadLocal<SimpleDateFormat>}
      */
     public static final String DEFAULT_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public static final String DEFAULT2_PATTERN = "yyyy年MM月dd日 HH:mm";
 
     /**
      * 将时间戳转为时间字符串
@@ -191,17 +192,31 @@ public class TimeUtils {
     public static String millis2String(long millis) {
         return new SimpleDateFormat(DEFAULT_PATTERN, Locale.getDefault()).format(new Date(millis));
     }
-
     /**
      * 将时间戳转为时间字符串
      * <p>格式为pattern</p>
-     *
      * @param millis  毫秒时间戳
      * @param pattern 时间格式
      * @return 时间字符串
      */
     public static String millis2String(long millis, String pattern) {
         return new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date(millis));
+    }
+
+    /**
+     * 将时间戳转为时间字符串
+     * MM月dd日 HH:mm
+     * @return 时间字符串
+     */
+    public static String millis2String2(String s) {
+     // return new SimpleDateFormat(DEFAULT2_PATTERN, Locale.getDefault()).format(new Date(millis));
+
+        String res;
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DEFAULT2_PATTERN);
+        long lt = new Long(s+"000");
+        Date date = new Date(lt);
+        res = simpleDateFormat.format(date);
+        return res;
     }
 
     /**

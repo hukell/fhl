@@ -8,6 +8,7 @@
         android:layout_width="match_parent"
         android:text="王小二:13585647599"
         android:gravity="center"
+        android:id="@+id/tv_name"
         android:paddingRight="30dp"
         android:paddingLeft="10dp"
         android:layout_height="35dp"/>

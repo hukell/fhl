@@ -22,5 +22,6 @@ public class User {
     public String refreshToken;
     public String refreshExpireDateTime;
     public String userType;
+    public String logo;
 
 }
