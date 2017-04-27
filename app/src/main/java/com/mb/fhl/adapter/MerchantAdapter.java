@@ -27,9 +27,8 @@ import java.util.List;
 
 public class MerchantAdapter extends BaseQuickAdapter<ShopBean.OrderinfoBean, BaseViewHolder>{
 
-
-    public MerchantAdapter(@LayoutRes int layoutResId, @Nullable List<ShopBean.OrderinfoBean> orderinfo) {
-        super(layoutResId, orderinfo);
+    public MerchantAdapter(@LayoutRes int layoutResId, @Nullable List<ShopBean.OrderinfoBean> data) {
+        super(layoutResId, data);
     }
 
     @Override

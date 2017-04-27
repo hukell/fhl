@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.mb.fhl.R;
@@ -38,6 +39,7 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
+import static android.R.attr.name;
 import static android.R.attr.type;
 import static com.mb.fhl.R.id.tv_change;
 
@@ -73,12 +75,14 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     private int mYear= -1;
     private MerchantAdapter pullToRefreshAdapter;
 
-    List<ShopBean.OrderinfoBean> orderinfo = new ArrayList<>();
+    List<ShopBean.OrderinfoBean> mOrderinfo = new ArrayList<>();
     private int mCurrentCounter;
     private Subscription mSubscribe;
     private String mDate1 = TimeUtils.getNowTimeString("yyyy-MM-dd");
     private int mOrderStytle = 1;
     private int mOrderStatus = 1;
+    private int  PAGE_SIZE = 20;
+
 
     @Override
     protected int getLayoutId() {
@@ -105,7 +109,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         mSwipeRefreshLayout.setOnRefreshListener(this);
         mSwipeRefreshLayout.setColorSchemeColors(getResources().getColor(R.color.color_4e76e5));
 
-        pullToRefreshAdapter = new MerchantAdapter(R.layout.recycle_item_merchant,orderinfo);
+        pullToRefreshAdapter = new MerchantAdapter(R.layout.recycle_item_merchant,mOrderinfo);
         pullToRefreshAdapter.setOnLoadMoreListener(this, mRecyclerView);
         pullToRefreshAdapter.openLoadAnimation(BaseQuickAdapter.SLIDEIN_LEFT);
 //        pullToRefreshAdapter.setAutoLoadMoreSize(3);
@@ -117,14 +121,12 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                           .subscribe(new Action1<ChangBean>() {
                               @Override
                               public void call(ChangBean changBean) {
-                                  changBean.toString();
-
                                   mTvChange.setText(changBean.mString);
                                   mOrderStytle = changBean.orderStyle;
+                                  page=1;
                                   getData();
                               }
                           });
-
         getData();
 
     }
@@ -146,7 +148,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                 DialogUtils.showPopTitleDown(this,mReTitle);
                 break;
             case R.id.tv_date:
-
+                  //日历选择日期
                 DatePickerDialog dpd = DatePickerDialog.newInstance(
                         MerchantActivity.this,
                         mYear!=-1?mYear:mNow.get(Calendar.YEAR),
@@ -171,7 +173,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         else if (tab.getText().equals("已完成")){
             mOrderStatus = 3;
         }
-
+        page=1;
         getData();
 
     }
@@ -189,34 +191,21 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     //刷新
     @Override
     public void onRefresh() {
-
+        pullToRefreshAdapter.setEnableLoadMore(false);
+        page=1;
+        getData();
     }
 
-    //加载更多
+    //加载更多  棒棒鸡
     @Override
     public void onLoadMoreRequested() {
-       /* mSwipeRefreshLayout.setEnabled(false);
+        mSwipeRefreshLayout.setEnabled(false);
         if (pullToRefreshAdapter.getData().size() < PAGE_SIZE) {
             pullToRefreshAdapter.loadMoreEnd(true);
-        } else {
-            if (mCurrentCounter >= TOTAL_COUNTER) {
-//                    pullToRefreshAdapter.loadMoreEnd();//default visible
-                pullToRefreshAdapter.loadMoreEnd(mLoadMoreEndGone);//true is gone,false is visible
-            } else {
-                if (isErr) {
-                    pullToRefreshAdapter.addData(DataServer.getSampleData(PAGE_SIZE));
-                    mCurrentCounter = pullToRefreshAdapter.getData().size();
-                    pullToRefreshAdapter.loadMoreComplete();
-                } else {
-                    isErr = true;
-                    Toast.makeText(PullToRefreshUseActivity.this, R.string.network_err, Toast.LENGTH_LONG).show();
-                    pullToRefreshAdapter.loadMoreFail();
-
-                }
-            }
-            mSwipeRefreshLayout.setEnabled(true);
-        }*/
-
+        }else {
+            page++;
+            getData();
+        }
     }
 
     //日历选择回调
@@ -229,22 +218,18 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         mMonthOfYear = monthOfYear-1;
         mDayOfMonth = dayOfMonth;
         mTvDate.setText(date);
-
+        page=1;
         getData();
     }
 
     public void getData(){
-
         HashMap<String, Object> params = new HashMap<>();
-
         params.put("orderDate",mDate1);
         params.put("orderStyle",mOrderStytle);
         params.put("orderStatus", mOrderStatus);
         params.put("page",page);
         params.put("userId",UserManager.getIns().getUser().uid);
         params.put("token",UserManager.getIns().getUser().accessToken);
-
-        String s = params.toString();
 
         Api.getRetrofit().getMerchantOrderList(params)
                 .subscribeOn(Schedulers.io())
@@ -253,20 +238,50 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                     @Override
                     public void onNext(BaseBean<ShopBean> shopBeanBaseBean) {
                         super.onNext(shopBeanBaseBean);
-                        List<ShopBean.OrderinfoBean> orderinfo = shopBeanBaseBean.getData().orderinfo;
+                        mOrderinfo = shopBeanBaseBean.getData().orderinfo;
 
+
+
+                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            pullToRefreshAdapter.setEnableLoadMore(true);
+                        }
+
+                        if (page == 1){
+                            pullToRefreshAdapter.setNewData(mOrderinfo);
+                        }else {
+                            pullToRefreshAdapter.addData(mOrderinfo);
+                            pullToRefreshAdapter.loadMoreComplete();
+                            mSwipeRefreshLayout.setEnabled(true);
+                        }
+
+                    }
+                    @Override
+                    public void onCompleted() {
+                        super.onCompleted();
+                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            pullToRefreshAdapter.setEnableLoadMore(true);
+                        }else {
+                            Toast.makeText(MerchantActivity.this, "加载失败", Toast.LENGTH_LONG).show();
+                            pullToRefreshAdapter.loadMoreFail();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        super.onError(e);
+                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            pullToRefreshAdapter.setEnableLoadMore(true);
+                        }else {
+                            Toast.makeText(MerchantActivity.this, "加载失败", Toast.LENGTH_LONG).show();
+                            pullToRefreshAdapter.loadMoreFail();
+                        }
                     }
                 });
 
-
-
-
-
-
     }
-
-
-
 
 
 
