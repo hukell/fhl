@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="colorBgColor">#F1EEEC</color>
+
+    <!--小圆点 20%*黑色-->
+    <color name="black20">#33000000</color>
+
+    <color name="white30">#1effffff</color>
+
+    <!--小圆点 70%*黑色-->
+    <color name="black70">#a2000000</color>
+    <color name="white">#ffffff</color>
+    <!-- 线条-->
+    <color name="line">#cccccc</color>
+
+
+    <color name="color_e94d4e">#e94d4e</color>
+    <color name="color_111111">#111111</color>
+    <color name="color_666666">#666666</color>
+    <color name="color_3077b5">#3077b5</color>
+    <color name="color_4e76e5">#4e76e5</color>
+    <color name="color_999999">#999999</color>
+    <color name="color_e5e5e5">#e5e5e5</color>
+
+</resources>

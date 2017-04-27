@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/td_login_big"
+    android:orientation="vertical"
+    >
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/td_login_big"
+    android:orientation="vertical"
+    tools:context="com.td.erhome.ui.login.LoginActivity">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:src="@mipmap/ta_login_back"
+        android:padding="20dp"
+        android:visibility="gone"
+        android:layout_height="wrap_content" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:src="@mipmap/img_home"
+        android:layout_marginTop="100dp"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:layout_marginLeft="37dp"
+        android:layout_marginRight="37dp"
+        android:layout_marginTop="40dp"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/ll_login"
+        android:background="@drawable/shape_back"
+        android:layout_height="100dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:layout_height="0dp">
+
+        <EditText android:layout_width="match_parent"
+            android:hint="输入登录名称"
+            android:id="@+id/et_name"
+            android:layout_marginLeft="20dp"
+            android:drawablePadding="15dp"
+            android:textColor="@color/white"
+            android:background="@null"
+            android:textColorHint="@color/white"
+            android:gravity="center_vertical"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:layout_height="match_parent"/>
+
+        </RelativeLayout>
+        <View android:layout_width="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:background="@color/line"
+            android:layout_height="1px"/>
+
+        <EditText android:layout_width="match_parent"
+            android:hint="输入密码"
+            android:layout_marginLeft="20dp"
+            android:drawablePadding="15dp"
+            android:id="@+id/et_password"
+            android:background="@null"
+            android:textColor="@color/white"
+            android:textColorHint="@color/white"
+            android:gravity="center_vertical"
+            android:textSize="15sp"
+            android:inputType="textPassword"
+            android:layout_weight="1"
+            android:layout_height="0dp"/>
+
+    </LinearLayout>
+
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:id="@+id/radiogroup"
+        android:layout_height="wrap_content">
+
+    <RadioButton
+        android:layout_width="wrap_content"
+        android:text="商家"
+        android:textSize="15sp"
+        android:textColor="@color/white"
+        android:gravity="center"
+        android:id="@+id/ra_sj"
+        android:checked="true"
+        android:button="@null"
+        android:background="@drawable/selector_button_color"
+        android:layout_height="wrap_content"/>
+
+        <RadioButton
+        android:layout_width="wrap_content"
+        android:text="配送员"
+        android:id="@+id/ra_psy"
+        android:textSize="15sp"
+        android:textColor="@color/white"
+        android:layout_marginLeft="50dp"
+        android:gravity="center"
+        android:button="@null"
+        android:background="@drawable/selector_button_color"
+        android:layout_height="wrap_content"/>
+
+    </RadioGroup>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:background="@drawable/shape_login"
+        android:layout_marginLeft="37dp"
+        android:layout_marginRight="37dp"
+        android:layout_marginTop="20dp"
+        android:text="登录"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:id="@+id/tv_sure"
+        android:textColor="@color/white"
+        android:layout_height="wrap_content" />
+
+
+</LinearLayout>
+
+
+
+</RelativeLayout>
