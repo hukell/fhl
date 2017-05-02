@@ -114,7 +114,6 @@
                android:textSize="14sp"
                android:id="@+id/tv_ps_phone"
                android:background="@color/color_e5e5e5"
-               android:text="王小二:13586547599"
                android:drawableRight="@mipmap/img_xlh"
                android:gravity="center"
                android:paddingRight="20dp"
@@ -156,7 +155,7 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:text="收起"
+                android:text="展开"
                 android:id="@+id/tv_sq"
                 android:drawablePadding="5dp"
                 android:paddingRight="10dp"
@@ -242,7 +241,6 @@
                 android:layout_height="wrap_content"/>
 
          </RelativeLayout>
-
 
     </LinearLayout>
 

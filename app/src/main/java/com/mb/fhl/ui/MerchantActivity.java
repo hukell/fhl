@@ -2,6 +2,9 @@ package com.mb.fhl.ui;
 
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.Intent;
+import android.net.Uri;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
@@ -22,6 +25,8 @@ import com.mb.fhl.R;
 import com.mb.fhl.base.BaseActivity;
 import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.ChangBean;
+import com.mb.fhl.models.Deliver;
+import com.mb.fhl.models.OutOrderBean;
 import com.mb.fhl.models.PhoneBean;
 import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.net.Api;
@@ -42,6 +47,7 @@ import java.util.List;
 
 import butterknife.Bind;
 import butterknife.OnClick;
+import cn.jpush.android.api.JPushInterface;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -89,6 +95,9 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     private int mOrderStatus = 1;
     private int  PAGE_SIZE = 20;
     private Subscription mSubscribe1;
+    private List<Deliver.DeliverlistBean> mDeliverlist;
+    private String mRegistrationID;
+    private Subscription mSubscribe2;
 
 
     @Override
@@ -98,18 +107,14 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
 
     @Override
     protected void initView() {
-        Titles = new String[]{"待处理", "进行中", "已完成"};
-        ImageLoader.loadCicleImage(this,UserManager.getIns().getUser().logo,R.mipmap.img_home,mImgHead);
+       //deviceToken 激光
+        mRegistrationID = JPushInterface.getRegistrationID(this);
+
+        ImageLoader.loadCicleImage(this, UserManager.getIns().getUser().logo, R.mipmap.img_home, mImgHead);
         mNow = Calendar.getInstance();
-        mTvDate.setText((1+mNow.get(Calendar.MONTH))+"月"+mNow.get(Calendar.DAY_OF_MONTH)+"日");
+        mTvDate.setText((1 + mNow.get(Calendar.MONTH)) + "月" + mNow.get(Calendar.DAY_OF_MONTH) + "日");
 
-        for (int i = 0; i < Titles.length; i++) {
-            mTabs.addTab(mTabs.newTab().setText(Titles[i])); //添加tab
-        }
-
-        mTabs.addOnTabSelectedListener(this);
-        mTabs.getTabAt(0).select();
-
+        getStatus(1);
 
         final LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(manager);
@@ -117,39 +122,77 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         mSwipeRefreshLayout.setOnRefreshListener(this);
         mSwipeRefreshLayout.setColorSchemeColors(getResources().getColor(R.color.color_4e76e5));
 
-        pullToRefreshAdapter = new MerchantAdapter(R.layout.recycle_item_merchant,mOrderinfo);
+        pullToRefreshAdapter = new MerchantAdapter(R.layout.recycle_item_merchant, mOrderinfo);
         pullToRefreshAdapter.setOnLoadMoreListener(this, mRecyclerView);
         pullToRefreshAdapter.openLoadAnimation(BaseQuickAdapter.SLIDEIN_LEFT);
 //        pullToRefreshAdapter.setAutoLoadMoreSize(3);
         mRecyclerView.setAdapter(pullToRefreshAdapter);
         mCurrentCounter = pullToRefreshAdapter.getData().size();
 
-
         mSubscribe = RxBus.getInstance().toObserverable(ChangBean.class)
-                          .subscribe(new Action1<ChangBean>() {
-                              @Override
-                              public void call(ChangBean changBean) {
-                                  mTvChange.setText(changBean.mString);
-                                  mOrderStytle = changBean.orderStyle;
-                                  page=1;
-                                  getData();
-                              }
-                          });
+                .subscribe(new Action1<ChangBean>() {
+                    @Override
+                    public void call(ChangBean changBean) {
+                        mTvChange.setText(changBean.mString);
+                        mOrderStytle = changBean.orderStyle;
+                        getStatus(mOrderStytle);
+                        page = 1;
+                        getData();
+                    }
+                });
 
         mSubscribe1 = RxBus.getInstance().toObserverable(PhoneBean.class)
-                          .subscribe(new Action1<PhoneBean>() {
-                              @Override
-                              public void call(PhoneBean phoneBean) {
-                                  String substring = phoneBean.s.substring(phoneBean.s.length() - 11, phoneBean.s.length());
+                .subscribe(new Action1<PhoneBean>() {
+                    @Override
+                    public void call(PhoneBean phoneBean) {
+                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverytel = phoneBean.deliverlistBean.deliverytel;
+                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverystaff = phoneBean.deliverlistBean.deliverystaff;
+                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliveryid = phoneBean.deliverlistBean.deliveryid;
+                        pullToRefreshAdapter.notifyItemChanged(phoneBean.point);
+                    }
+                });
 
-                                  mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverytel=phoneBean.s.substring(phoneBean.s.length()-11,phoneBean.s.length());
-                                  mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverystaff=phoneBean.s.substring(0,phoneBean.s.length()-12);
-                                  pullToRefreshAdapter.notifyItemChanged(phoneBean.point);
-                              }
-                          });
+        mSubscribe2 = RxBus.getInstance().toObserverable(OutOrderBean.class)
+                .subscribe(new Action1<OutOrderBean>() {
+                    @Override
+                    public void call(OutOrderBean OutOrderBean) {
+                        merchantOrderRefund(OutOrderBean.layoutPosition,OutOrderBean.ordernum);
+                    }
+                });
+        getDeLiverList(); //获取所有配送人员
         getData();
 
     }
+    private void getDeLiverList() {
+        Api.getRetrofit().getDeliverList()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseSubscriber<BaseBean<Deliver>>(MerchantActivity.this){
+                    @Override
+                    public void onNext(BaseBean<Deliver> deliverBaseBean) {
+                        super.onNext(deliverBaseBean);
+                        mDeliverlist = deliverBaseBean.getData().deliverlist;
+                    }
+                });
+    }
+
+    private void getStatus(int orderStatus) {
+        if (orderStatus ==1){
+            Titles = new String[]{"待处理", "进行中", "已完成"};
+            mTabs.removeAllTabs();
+        }
+        else {
+            Titles = new String[]{"进行中", "已完成"};
+            mTabs.removeAllTabs();
+        }
+        for (int i = 0; i < Titles.length; i++) {
+            mTabs.addTab(mTabs.newTab().setText(Titles[i])); //添加tab
+        }
+
+        mTabs.addOnTabSelectedListener(this);
+        mTabs.getTabAt(0).select();
+    }
+
     @Override
     protected void releaseResource() {
         if (!mSubscribe.isUnsubscribed()){
@@ -163,6 +206,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.img_head:
+                DialogUtils.submitLogOut(this);
                 break;
             case tv_change:
                 DialogUtils.showPopTitleDown(this,mReTitle);
@@ -366,14 +410,14 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     }
 
     //商户确认堂吃订单
-    public void merchantConfirmEatinOrder(final int point, String ordernum){
+    public void merchantCookingFinishEatinOrder(final int point, String ordernum){
 
         HashMap<String, Object> params = new HashMap<>();
         params.put("orderId",ordernum);
         params.put("userId",UserManager.getIns().getUser().uid);
         params.put("token",UserManager.getIns().getUser().accessToken);
 
-        Api.getRetrofit().merchantConfirmEatinOrder(params)
+        Api.getRetrofit().merchantCookingFinishEatinOrder(params)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
@@ -384,7 +428,6 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                         pullToRefreshAdapter.notifyDataSetChanged();
                     }
                 });
-
     }
 
 
@@ -399,7 +442,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
             final int layoutPosition = helper.getLayoutPosition();
 
             final RecyclerView recyclerView = (RecyclerView) helper.getView(R.id.item_recyclerview);
-            TextView tvSq = (TextView) helper.getView(R.id.tv_sq);
+            final TextView tvSq = (TextView) helper.getView(R.id.tv_sq);
             final TextView tvPsPhone = (TextView) helper.getView(R.id.tv_ps_phone);
             final TextView tvTime = (TextView) helper.getView(R.id.tv_time);
             final TextView tvStatus = (TextView) helper.getView(R.id.tv_status);
@@ -407,6 +450,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
             final TextView tvRefundLeft = (TextView) helper.getView(R.id.refund_left);
             final TextView tvDdh = (TextView) helper.getView(R.id.tv_ddh);
             final LinearLayout linPsName = (LinearLayout) helper.getView(R.id.lin_ps_name);
+            final ImageView imgCall = (ImageView) helper.getView(R.id.img_call);
 
             tvDdh.setText("#"+item.serialnum); //流水号
             helper.setText(R.id.tv_zj,"￥"+item.goodstotal); //总价
@@ -414,7 +458,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
             tvRefundLeft.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    merchantOrderRefund(layoutPosition,item.ordernum);
+                    DialogUtils.outOrder(MerchantActivity.this,layoutPosition,item.ordernum);
                 }
             });
 
@@ -425,8 +469,20 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                 tvTime.setText(TimeUtils.millis2String2(item.deliverytime)); //送达时间
                 helper.setText(R.id.tv_name,item.customername+" :"); //顾客名字
                 helper.setText(R.id.tv_phone,item.customertel);
-                helper.setText(R.id.tv_address,"地址");
+                helper.setText(R.id.tv_address,"地址:"+item.orderaddress);
                 tvPsPhone.setText(item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliverystaff+": "+item.deliveryinfo.get(0).deliverytel:"暂无配送人员");
+
+                imgCall.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(Intent.ACTION_DIAL);
+                        Uri data = Uri.parse("tel:"+ (item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliverytel:""));
+                        intent.setData(data);
+                        startActivity(intent);
+
+                    }
+                });
+
 
                 switch (mOrderStatus){
                     case 1:
@@ -439,17 +495,18 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                             }
                         });
 
-
+                        tvPsPhone.setClickable(true);
                         tvPsPhone.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                DialogUtils.showPopPhoneDown((Activity) mContext,tvPsPhone,item.deliveryinfo,layoutPosition);
+                                DialogUtils.showPopPhoneDown((Activity) mContext,tvPsPhone,mDeliverlist,layoutPosition);
                             }
                         });
                         break;
                     case 2:
                         tvStatus.setText("进行中");
                         tvRefundRight.setText("补打订单");
+                        tvPsPhone.setClickable(false);
                         //打印订单
                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
                             @Override
@@ -461,6 +518,7 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                     case 3:
                         tvStatus.setText("已完成");
                         tvRefundRight.setText("补打订单");
+                        tvPsPhone.setClickable(false);
                         //打印订单
                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
                             @Override
@@ -481,16 +539,19 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
                      case 1:
                          tvStatus.setText("待处理");
                          tvRefundRight.setText("出菜");
-                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
-                             @Override
-                             public void onClick(View v) {
-                                 merchantConfirmEatinOrder(layoutPosition,item.ordernum);
-                             }
-                         });
+
                          break;
                      case 2:
                          tvStatus.setText("进行中");
                          tvRefundRight.setText("出菜完成");
+
+                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                             @Override
+                             public void onClick(View v) {
+                                 merchantCookingFinishEatinOrder(layoutPosition,item.ordernum);
+                             }
+                         });
+
                          break;
                      case 3:
                          tvStatus.setText("已完成");
@@ -522,8 +583,10 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
 
                     if (measuredHeight != 0){
                         anim = ValueAnimator.ofFloat(DisplayUtil.dip2px(mContext,itemCount), 0);
+                        tvSq.setText("展开");
                     }else {
                         anim = ValueAnimator.ofFloat(0, DisplayUtil.dip2px(mContext,itemCount));
+                        tvSq.setText("收起");
                     }
                     anim.setDuration(300);
                     anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -543,6 +606,31 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         }
 
     }
+
+     //激光推送
+    public void upDeviceToken() {
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("userId",UserManager.getIns().getUser().uid);
+        params.put("deviceToken", mRegistrationID);
+
+        Api.getRetrofit().upDeviceToken(params)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
+                    @Override
+                    public void onStart() {
+                    }
+                    @Override
+                    public void onNext(BaseBean javaBean) {
+                        super.onNext(javaBean);
+                        //  startActivity(new Intent(LoginActivity.this,HomeActivity.class));
+                        finish();
+                    }
+                });
+    }
+
+
 
 }
 

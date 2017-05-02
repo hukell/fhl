@@ -1,6 +1,7 @@
 package com.mb.fhl.net;
 
 import com.mb.fhl.models.BaseBean;
+import com.mb.fhl.models.Deliver;
 import com.mb.fhl.models.OrderBean;
 import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.models.User;
@@ -77,7 +78,19 @@ public interface  ApiService {
      商户确认堂吃订单
      */
     @FormUrlEncoded
-    @POST("merchantConfirmEatinOrder")
-    Observable<BaseBean> merchantConfirmEatinOrder(@FieldMap HashMap<String, Object> params);
+    @POST("merchantCookingFinishEatinOrder")
+    Observable<BaseBean> merchantCookingFinishEatinOrder(@FieldMap HashMap<String, Object> params);
 
+    /**
+    * 获取所有配送人员  getDeliverList
+    */
+    @GET("getDeliverList")
+    Observable<BaseBean<Deliver>> getDeliverList();
+
+    /**
+     * 上传设备id 推送用
+      */
+    @FormUrlEncoded
+    @POST("merchantCookingFinishEatinOrder")
+    Observable<BaseBean> upDeviceToken(@FieldMap HashMap<String, Object> params);
 }

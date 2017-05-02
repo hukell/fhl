@@ -48,6 +48,7 @@ public class ShopBean {
         public String customername;
         public String customertel;
         public String goodstotal;
+        public String orderaddress;
 
         public String orderstatus;
         public int orderStyle;

@@ -1,13 +1,20 @@
 package com.mb.fhl.utils;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
@@ -15,8 +22,11 @@ import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.mb.fhl.R;
 import com.mb.fhl.adapter.PopDownAdapter;
 import com.mb.fhl.models.ChangBean;
+import com.mb.fhl.models.Deliver;
+import com.mb.fhl.models.OutOrderBean;
 import com.mb.fhl.models.PhoneBean;
 import com.mb.fhl.models.ShopBean;
+import com.mb.fhl.ui.LoginActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,17 +73,16 @@ public class DialogUtils {
 
     }
 
-    public static void showPopPhoneDown(Activity activity, View view, List<ShopBean.OrderinfoBean.DeliveryinfoBean> deliveryinfo, final int point){
+    public static void showPopPhoneDown(Activity activity, View view, final List<Deliver.DeliverlistBean> mDeliverlist, final int point){
         LayoutInflater mLayoutInflater = (LayoutInflater) activity.getSystemService(LAYOUT_INFLATER_SERVICE);
         ViewGroup menuView = (ViewGroup) mLayoutInflater.inflate(R.layout.phone_down, null, true);
 
         RecyclerView recyclerView = (RecyclerView) menuView.findViewById(R.id.phone_pop_recyclerview);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
         final List<String> list = new ArrayList<>();
-        for (int i = 0; i <deliveryinfo.size() ; i++) {
-            list.add(deliveryinfo.get(i).deliverystaff+":"+deliveryinfo.get(i).deliverytel);
+        for (int i = 0; i <mDeliverlist.size() ; i++) {
+            list.add(mDeliverlist.get(i).deliverystaff+":"+mDeliverlist.get(i).deliverytel);
         }
-        list.add(deliveryinfo.get(0).deliverystaff+":"+deliveryinfo.get(0).deliverytel);
 
         int PopHeight = list.size() * 35;
         PopDownAdapter adapter = new PopDownAdapter(R.layout.phone_item,list);
@@ -86,7 +95,7 @@ public class DialogUtils {
         adapter.setOnItemChildClickListener(new BaseQuickAdapter.OnItemChildClickListener() {
             @Override
             public void onItemChildClick(BaseQuickAdapter adapter, View view, int position) {
-                RxBus.getInstance().post(new PhoneBean(point,list.get(position)));
+                RxBus.getInstance().post(new PhoneBean(point,mDeliverlist.get(position)));
                 pw.dismiss();
             }
         });
@@ -100,6 +109,87 @@ public class DialogUtils {
 
         pw.showAsDropDown(view);
 
+    }
+
+
+    public static void submitLogOut(final Activity activity) {
+        LayoutInflater inflater = LayoutInflater.from(activity);
+        View v = inflater.inflate(R.layout.logout_dialog, null);
+        TextView tvLogout = (TextView) v.findViewById(R.id.tv_logout);
+        TextView tvCansal = (TextView) v.findViewById(R.id.tv_cansal);
+
+        tvLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                UserManager.getIns().clearUserInfo();
+                activity.startActivity(new Intent(activity, LoginActivity.class));
+                activity.finish();
+            }
+        });
+
+        // 创建自定义样式dialog
+        final Dialog mLoadingDialog = new Dialog(activity, R.style.loading_dialog);
+
+        mLoadingDialog.setCancelable(true);// 可以用"返回键"取消
+        mLoadingDialog.setCanceledOnTouchOutside(false);
+
+        tvCansal.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mLoadingDialog.dismiss();
+            }
+        });
+
+        mLoadingDialog.setContentView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Window window = mLoadingDialog.getWindow();
+        window.setGravity(Gravity.CENTER);  //此处可以设置dialog显示的位置
+
+        WindowManager.LayoutParams lp = window.getAttributes();
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        window.setAttributes(lp);
+        mLoadingDialog.show();
+    }
+   //退款
+   public static void outOrder(final Activity activity, final int layoutPosition, final String ordernum) {
+        LayoutInflater inflater = LayoutInflater.from(activity);
+        View v = inflater.inflate(R.layout.outorder_dialog, null);
+        TextView tvLogout = (TextView) v.findViewById(R.id.tv_logout);
+        TextView tvCansal = (TextView) v.findViewById(R.id.tv_cansal);
+
+        tvLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+             RxBus.getInstance().post(new OutOrderBean(layoutPosition,ordernum));
+            }
+        });
+
+        // 创建自定义样式dialog
+        final Dialog mLoadingDialog = new Dialog(activity, R.style.loading_dialog);
+
+        mLoadingDialog.setCancelable(true);// 可以用"返回键"取消
+        mLoadingDialog.setCanceledOnTouchOutside(false);
+
+        tvCansal.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mLoadingDialog.dismiss();
+            }
+        });
+
+        mLoadingDialog.setContentView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Window window = mLoadingDialog.getWindow();
+        window.setGravity(Gravity.CENTER);  //此处可以设置dialog显示的位置
+
+        WindowManager.LayoutParams lp = window.getAttributes();
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        window.setAttributes(lp);
+        mLoadingDialog.show();
     }
 
 

@@ -7,9 +7,10 @@ package com.mb.fhl.models;
 public class PhoneBean {
     public int point;
     public String s;
+    public Deliver.DeliverlistBean deliverlistBean;
 
-    public PhoneBean(int point, String s) {
+    public PhoneBean(int point, Deliver.DeliverlistBean deliverlistBean) {
         this.point = point;
-        this.s = s;
+        this.deliverlistBean = deliverlistBean;
     }
 }

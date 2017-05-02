@@ -5,6 +5,8 @@ import android.app.Application;
 import com.mb.fhl.utils.SharePreHelper;
 import com.mb.fhl.utils.Utils;
 
+import cn.jpush.android.api.JPushInterface;
+
 /**
  * Created by Administrator on 2016/10/11 0011.
  */
@@ -25,5 +27,7 @@ public class App extends Application {
         INS = this;
         SharePreHelper.getIns().initialize(this, null);
         Utils.init(this);
+        JPushInterface.setDebugMode(true);
+        JPushInterface.init(this);
     }
 }

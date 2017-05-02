@@ -13,6 +13,29 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme1">
+
+
+        <!-- User defined. 用户自定义的广播接收器 -->
+        <receiver
+            android:name=".receivers.MyReceiver"
+            android:enabled="true">
+            <intent-filter>
+
+                <!-- Required 用户注册SDK的intent -->
+                <action android:name="cn.jpush.android.intent.REGISTRATION"/>
+                <!-- Required 用户接收SDK消息的intent -->
+                <action android:name="cn.jpush.android.intent.MESSAGE_RECEIVED"/>
+                <!-- Required 用户接收SDK通知栏信息的intent -->
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED"/>
+                <!-- Required 用户打开自定义通知栏的intent -->
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_OPENED"/>
+                <!-- 接收网络变化 连接/断开 since 1.6.3 -->
+                <action android:name="cn.jpush.android.intent.CONNECTION"/>
+
+                <category android:name="com.mb.hci"/>
+            </intent-filter>
+        </receiver>
+
         <activity android:name=".ui.HomeActivity">
         </activity>
         <activity android:name=".ui.LoginActivity">
@@ -23,6 +46,9 @@
         </activity>
         <activity android:name=".ui.MerchantActivity">
         </activity>
+
+
+
     </application>
 
 </manifest>
