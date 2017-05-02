@@ -8,9 +8,12 @@ import android.net.Uri;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,6 +28,7 @@ import com.mb.fhl.R;
 import com.mb.fhl.base.BaseActivity;
 import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.ChangBean;
+import com.mb.fhl.models.DateBean;
 import com.mb.fhl.models.Deliver;
 import com.mb.fhl.models.OutOrderBean;
 import com.mb.fhl.models.PhoneBean;
@@ -55,8 +59,8 @@ import rx.schedulers.Schedulers;
 
 import static com.mb.fhl.R.id.tv_change;
 
-public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSelectedListener,
-        DatePickerDialog.OnDateSetListener,BaseQuickAdapter.RequestLoadMoreListener,SwipeRefreshLayout.OnRefreshListener{
+public class MerchantActivity extends BaseActivity implements
+        DatePickerDialog.OnDateSetListener{
 
     @Bind(R.id.img_head)
     ImageView mImgHead;
@@ -64,41 +68,24 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     TextView mTvChange;
     @Bind(R.id.tv_date)
     TextView mTvDate;
-    @Bind(R.id.tabs)
-    TabLayout mTabs;
-    @Bind(R.id.gap)
-    View mGap;
-    @Bind(R.id.tv_price)
-    TextView mTvPrice;
+
     @Bind(R.id.re_title)
     RelativeLayout mReTitle;
 
-    @Bind(R.id.merchant_xrecyc)
-    RecyclerView mRecyclerView;
-
-    @Bind(R.id.refresh)
-    SwipeRefreshLayout mSwipeRefreshLayout;
-    private String[] Titles;
-    private int page = 1;
 
     private Calendar mNow;
     private int mMonthOfYear = -1;
     private int mDayOfMonth= -1;
     private int mYear= -1;
-    private MerchantAdapter pullToRefreshAdapter;
 
-    List<ShopBean.OrderinfoBean> mOrderinfo = new ArrayList<>();
-    private int mCurrentCounter;
     private Subscription mSubscribe;
     private String mDate1 = TimeUtils.getNowTimeString("yyyy-MM-dd");
-    private int mOrderStytle = 1;
-    private int mOrderStatus = 1;
-    private int  PAGE_SIZE = 20;
-    private Subscription mSubscribe1;
-    private List<Deliver.DeliverlistBean> mDeliverlist;
     private String mRegistrationID;
-    private Subscription mSubscribe2;
-
+    private long exitTime;
+    private FragmentManager mFragmentManager;
+    private OrderFragment mTakeOutorderFragment;
+    private OrderFragment mTakeInorderFragment;
+    private OrderDataFragment mOrderDtaFragment;
 
     @Override
     protected int getLayoutId() {
@@ -109,96 +96,29 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
     protected void initView() {
        //deviceToken 激光
         mRegistrationID = JPushInterface.getRegistrationID(this);
+        mFragmentManager = getSupportFragmentManager();
 
         ImageLoader.loadCicleImage(this, UserManager.getIns().getUser().logo, R.mipmap.img_home, mImgHead);
         mNow = Calendar.getInstance();
         mTvDate.setText((1 + mNow.get(Calendar.MONTH)) + "月" + mNow.get(Calendar.DAY_OF_MONTH) + "日");
-
-        getStatus(1);
-
-        final LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        mRecyclerView.setLayoutManager(manager);
-
-        mSwipeRefreshLayout.setOnRefreshListener(this);
-        mSwipeRefreshLayout.setColorSchemeColors(getResources().getColor(R.color.color_4e76e5));
-
-        pullToRefreshAdapter = new MerchantAdapter(R.layout.recycle_item_merchant, mOrderinfo);
-        pullToRefreshAdapter.setOnLoadMoreListener(this, mRecyclerView);
-        pullToRefreshAdapter.openLoadAnimation(BaseQuickAdapter.SLIDEIN_LEFT);
-//        pullToRefreshAdapter.setAutoLoadMoreSize(3);
-        mRecyclerView.setAdapter(pullToRefreshAdapter);
-        mCurrentCounter = pullToRefreshAdapter.getData().size();
 
         mSubscribe = RxBus.getInstance().toObserverable(ChangBean.class)
                 .subscribe(new Action1<ChangBean>() {
                     @Override
                     public void call(ChangBean changBean) {
                         mTvChange.setText(changBean.mString);
-                        mOrderStytle = changBean.orderStyle;
-                        getStatus(mOrderStytle);
-                        page = 1;
-                        getData();
+                        addFragment(changBean.mString);
                     }
                 });
 
-        mSubscribe1 = RxBus.getInstance().toObserverable(PhoneBean.class)
-                .subscribe(new Action1<PhoneBean>() {
-                    @Override
-                    public void call(PhoneBean phoneBean) {
-                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverytel = phoneBean.deliverlistBean.deliverytel;
-                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliverystaff = phoneBean.deliverlistBean.deliverystaff;
-                        mOrderinfo.get(phoneBean.point).deliveryinfo.get(0).deliveryid = phoneBean.deliverlistBean.deliveryid;
-                        pullToRefreshAdapter.notifyItemChanged(phoneBean.point);
-                    }
-                });
+        addFragment("外卖订单");
 
-        mSubscribe2 = RxBus.getInstance().toObserverable(OutOrderBean.class)
-                .subscribe(new Action1<OutOrderBean>() {
-                    @Override
-                    public void call(OutOrderBean OutOrderBean) {
-                        merchantOrderRefund(OutOrderBean.layoutPosition,OutOrderBean.ordernum);
-                    }
-                });
-        getDeLiverList(); //获取所有配送人员
-        getData();
-
-    }
-    private void getDeLiverList() {
-        Api.getRetrofit().getDeliverList()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean<Deliver>>(MerchantActivity.this){
-                    @Override
-                    public void onNext(BaseBean<Deliver> deliverBaseBean) {
-                        super.onNext(deliverBaseBean);
-                        mDeliverlist = deliverBaseBean.getData().deliverlist;
-                    }
-                });
-    }
-
-    private void getStatus(int orderStatus) {
-        if (orderStatus ==1){
-            Titles = new String[]{"待处理", "进行中", "已完成"};
-            mTabs.removeAllTabs();
-        }
-        else {
-            Titles = new String[]{"进行中", "已完成"};
-            mTabs.removeAllTabs();
-        }
-        for (int i = 0; i < Titles.length; i++) {
-            mTabs.addTab(mTabs.newTab().setText(Titles[i])); //添加tab
-        }
-
-        mTabs.addOnTabSelectedListener(this);
-        mTabs.getTabAt(0).select();
     }
 
     @Override
     protected void releaseResource() {
         if (!mSubscribe.isUnsubscribed()){
             mSubscribe.unsubscribe();
-        } if (!mSubscribe1.isUnsubscribed()){
-            mSubscribe1.unsubscribe();
         }
     }
 
@@ -226,388 +146,97 @@ public class MerchantActivity extends BaseActivity implements TabLayout.OnTabSel
         }
     }
 
-    @Override
-    public void onTabSelected(TabLayout.Tab tab) {
-        if (tab.getText().equals("待处理")){
-            mOrderStatus = 1;
-        }
-        else if (tab.getText().equals("进行中")){
-            mOrderStatus = 2;
-        }
-        else if (tab.getText().equals("已完成")){
-            mOrderStatus = 3;
-        }
-        page=1;
-        getData();
-
-    }
-
-    @Override
-    public void onTabUnselected(TabLayout.Tab tab) {
-
-    }
-
-    @Override
-    public void onTabReselected(TabLayout.Tab tab) {
-
-    }
-
-    //刷新
-    @Override
-    public void onRefresh() {
-        page=1;
-        getData();
-    }
-
-    //加载更多  棒棒鸡
-    @Override
-    public void onLoadMoreRequested() {
-        if (pullToRefreshAdapter.getData().size() < PAGE_SIZE) {
-            pullToRefreshAdapter.loadMoreEnd(true);
-        }else {
-            page++;
-            getData();
-        }
-    }
-
     //日历选择回调
     @Override
     public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
         String date =(++monthOfYear)+"月"+ dayOfMonth +"日";
         mDate1 = year+"-"+(monthOfYear)+"-"+ dayOfMonth;
-
         mYear = year;
         mMonthOfYear = monthOfYear-1;
         mDayOfMonth = dayOfMonth;
         mTvDate.setText(date);
-        page=1;
-        getData();
-    }
-
-    //请求列表数据
-    public void getData(){
-        HashMap<String, Object> params = new HashMap<>();
-        params.put("orderDate",mDate1);
-        params.put("orderStyle",mOrderStytle);
-        params.put("orderStatus", mOrderStatus);
-        params.put("page",page);
-        params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("token",UserManager.getIns().getUser().accessToken);
-
-        Api.getRetrofit().getMerchantOrderList(params)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean<ShopBean>>(MerchantActivity.this){
-                    @Override
-                    public void onNext(BaseBean<ShopBean> shopBeanBaseBean) {
-                        super.onNext(shopBeanBaseBean);
-                        mOrderinfo = shopBeanBaseBean.getData().orderinfo;
-                        mTvPrice.setText(mTvDate.getText().toString()+ TypeUtils.getString(mOrderStatus)+shopBeanBaseBean.getData().totalCount+"单，总额"+shopBeanBaseBean.getData().totalAmount+"元");
-                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
-                            mSwipeRefreshLayout.setRefreshing(false);
-                            pullToRefreshAdapter.setEnableLoadMore(true);
-                        }
-
-                        if (page == 1){
-                            pullToRefreshAdapter.setNewData(mOrderinfo);
-                        }else {
-                            pullToRefreshAdapter.addData(mOrderinfo);
-                            pullToRefreshAdapter.loadMoreComplete();
-
-                        }
-
-                    }
-                    @Override
-                    public void onCompleted() {
-                        super.onCompleted();
-                        mSwipeRefreshLayout.setEnabled(true);
-                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
-                            mSwipeRefreshLayout.setRefreshing(false);
-                            pullToRefreshAdapter.setEnableLoadMore(true);
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        super.onError(e);
-                        mSwipeRefreshLayout.setEnabled(true);
-                        if (mSwipeRefreshLayout!=null&&mSwipeRefreshLayout.isRefreshing()){
-                            mSwipeRefreshLayout.setRefreshing(false);
-                            pullToRefreshAdapter.setEnableLoadMore(true);
-                        }else {
-                            pullToRefreshAdapter.loadMoreFail();
-                        }
-                    }
-                });
-    }
-
-
-
-    //商户确认外卖订单
-      public void ConfirmTakeoutOrder(final int point, String ordernum, String deliverid){
-
-          HashMap<String, Object> params = new HashMap<>();
-          params.put("orderId",ordernum);
-          params.put("deliverid",deliverid);
-          params.put("userId",UserManager.getIns().getUser().uid);
-          params.put("token",UserManager.getIns().getUser().accessToken);
-
-          Api.getRetrofit().merchantConfirmTakeoutOrder(params)
-                  .subscribeOn(Schedulers.io())
-                  .observeOn(AndroidSchedulers.mainThread())
-                  .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
-                      @Override
-                      public void onNext(BaseBean baseBean) {
-                          super.onNext(baseBean);
-                          mOrderinfo.remove(point);
-                          pullToRefreshAdapter.notifyDataSetChanged();
-                      }
-                  });
-
-      }
-
-      //退款
-      public void merchantOrderRefund(final int point, String ordernum){
-
-          HashMap<String, Object> params = new HashMap<>();
-          params.put("orderId",ordernum);
-          params.put("userId",UserManager.getIns().getUser().uid);
-          params.put("token",UserManager.getIns().getUser().accessToken);
-
-          Api.getRetrofit().merchantOrderRefund(params)
-                  .subscribeOn(Schedulers.io())
-                  .observeOn(AndroidSchedulers.mainThread())
-                  .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
-                      @Override
-                      public void onNext(BaseBean baseBean) {
-                          super.onNext(baseBean);
-                          mOrderinfo.remove(point);
-                          pullToRefreshAdapter.notifyDataSetChanged();
-                      }
-                  });
-
-      }
-
-
-      //商户打印订单  merchantPrintOrder
-    public void merchantPrintOrder(final int point, String ordernum){
-
-        HashMap<String, Object> params = new HashMap<>();
-        params.put("orderId",ordernum);
-        params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("token",UserManager.getIns().getUser().accessToken);
-
-        Api.getRetrofit().merchantPrintOrder(params)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
-                    @Override
-                    public void onNext(BaseBean baseBean) {
-                        super.onNext(baseBean);
-                    }
-                });
+        RxBus.getInstance().post(new DateBean(mDate1,date));
 
     }
 
-    //商户确认堂吃订单
-    public void merchantCookingFinishEatinOrder(final int point, String ordernum){
-
-        HashMap<String, Object> params = new HashMap<>();
-        params.put("orderId",ordernum);
-        params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("token",UserManager.getIns().getUser().accessToken);
-
-        Api.getRetrofit().merchantCookingFinishEatinOrder(params)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean>(MerchantActivity.this){
-                    @Override
-                    public void onNext(BaseBean baseBean) {
-                        super.onNext(baseBean);
-                        mOrderinfo.remove(point);
-                        pullToRefreshAdapter.notifyDataSetChanged();
-                    }
-                });
-    }
-
-
-    public class MerchantAdapter extends BaseQuickAdapter<ShopBean.OrderinfoBean, BaseViewHolder>{
-
-        public MerchantAdapter(@LayoutRes int layoutResId, @Nullable List<ShopBean.OrderinfoBean> data) {
-            super(layoutResId, data);
+    /**
+     * 添加Fragment
+     */
+    public void addFragment(String i) {
+        //开启一个事务
+        FragmentTransaction transaction = mFragmentManager.beginTransaction();
+        //先全部隐藏
+        hideFragment(transaction);
+        switch (i) {
+            case "外卖订单":
+                if (mTakeOutorderFragment == null) {
+                    mTakeOutorderFragment = OrderFragment.newInstance(1);
+                    transaction.add(R.id.replace, mTakeOutorderFragment);
+                } else {
+                    transaction.show(mTakeOutorderFragment);
+                }
+                break;
+            case "堂吃订单":
+                if (mTakeInorderFragment == null) {
+                    mTakeInorderFragment = OrderFragment.newInstance(2);
+                    transaction.add(R.id.replace, mTakeInorderFragment);
+                } else {
+                    transaction.show(mTakeInorderFragment);
+                }
+                break;
+            case "销售数据":
+                if (mOrderDtaFragment == null) {
+                    mOrderDtaFragment = OrderDataFragment.newInstance();
+                    transaction.add(R.id.replace, mOrderDtaFragment);
+                } else {
+                    transaction.show(mOrderDtaFragment);
+                }
+                break;
         }
-
-        @Override
-        protected void convert(final BaseViewHolder helper, final ShopBean.OrderinfoBean item) {
-            final int layoutPosition = helper.getLayoutPosition();
-
-            final RecyclerView recyclerView = (RecyclerView) helper.getView(R.id.item_recyclerview);
-            final TextView tvSq = (TextView) helper.getView(R.id.tv_sq);
-            final TextView tvPsPhone = (TextView) helper.getView(R.id.tv_ps_phone);
-            final TextView tvTime = (TextView) helper.getView(R.id.tv_time);
-            final TextView tvStatus = (TextView) helper.getView(R.id.tv_status);
-            final TextView tvRefundRight = (TextView) helper.getView(R.id.refund_right);
-            final TextView tvRefundLeft = (TextView) helper.getView(R.id.refund_left);
-            final TextView tvDdh = (TextView) helper.getView(R.id.tv_ddh);
-            final LinearLayout linPsName = (LinearLayout) helper.getView(R.id.lin_ps_name);
-            final ImageView imgCall = (ImageView) helper.getView(R.id.img_call);
-
-            tvDdh.setText("#"+item.serialnum); //流水号
-            helper.setText(R.id.tv_zj,"￥"+item.goodstotal); //总价
-
-            tvRefundLeft.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    DialogUtils.outOrder(MerchantActivity.this,layoutPosition,item.ordernum);
-                }
-            });
-
-            if (mOrderStytle==1){ //外卖
-                linPsName.setVisibility(View.VISIBLE);
-                tvTime.setVisibility(View.VISIBLE);
-                long l = Long.parseLong(item.deliverytime);
-                tvTime.setText(TimeUtils.millis2String2(item.deliverytime)); //送达时间
-                helper.setText(R.id.tv_name,item.customername+" :"); //顾客名字
-                helper.setText(R.id.tv_phone,item.customertel);
-                helper.setText(R.id.tv_address,"地址:"+item.orderaddress);
-                tvPsPhone.setText(item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliverystaff+": "+item.deliveryinfo.get(0).deliverytel:"暂无配送人员");
-
-                imgCall.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(Intent.ACTION_DIAL);
-                        Uri data = Uri.parse("tel:"+ (item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliverytel:""));
-                        intent.setData(data);
-                        startActivity(intent);
-
-                    }
-                });
-
-
-                switch (mOrderStatus){
-                    case 1:
-                        tvStatus.setText("待处理");
-                        tvRefundRight.setText("出菜");
-                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
-                            @Override
-                            public void onClick(View v) {
-                                ConfirmTakeoutOrder(layoutPosition,item.ordernum,item.deliveryinfo.size()!=0?item.deliveryinfo.get(0).deliveryid:"");
-                            }
-                        });
-
-                        tvPsPhone.setClickable(true);
-                        tvPsPhone.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                DialogUtils.showPopPhoneDown((Activity) mContext,tvPsPhone,mDeliverlist,layoutPosition);
-                            }
-                        });
-                        break;
-                    case 2:
-                        tvStatus.setText("进行中");
-                        tvRefundRight.setText("补打订单");
-                        tvPsPhone.setClickable(false);
-                        //打印订单
-                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
-                            @Override
-                            public void onClick(View v) {
-                                merchantPrintOrder(layoutPosition,item.ordernum);
-                            }
-                        });
-                        break;
-                    case 3:
-                        tvStatus.setText("已完成");
-                        tvRefundRight.setText("补打订单");
-                        tvPsPhone.setClickable(false);
-                        //打印订单
-                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
-                            @Override
-                            public void onClick(View v) {
-                                merchantPrintOrder(layoutPosition,item.ordernum);
-                            }
-                        });
-                        break;
-                }
-            }
-              else if (mOrderStytle==2){ //堂吃
-                tvTime.setVisibility(View.GONE);
-                helper.setText(R.id.tv_address,item.eatin.shopname+"  "+item.eatin.tablenumber+"桌");
-                linPsName.setVisibility(View.GONE);
-                helper.setText(R.id.tv_name,item.customername); //顾客名字
-                helper.setText(R.id.tv_phone,"");
-                 switch (mOrderStatus){
-                     case 1:
-                         tvStatus.setText("待处理");
-                         tvRefundRight.setText("出菜");
-
-                         break;
-                     case 2:
-                         tvStatus.setText("进行中");
-                         tvRefundRight.setText("出菜完成");
-
-                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
-                             @Override
-                             public void onClick(View v) {
-                                 merchantCookingFinishEatinOrder(layoutPosition,item.ordernum);
-                             }
-                         });
-
-                         break;
-                     case 3:
-                         tvStatus.setText("已完成");
-                         tvRefundRight.setText("补打订单");
-                         break;
-                 }
-            }
-
-            ItemAdapter itemAdapter = new ItemAdapter(mContext,item.goods);
-            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(mContext, LinearLayoutManager.VERTICAL, false) {
-                @Override
-                public boolean canScrollVertically() {
-                    return false;
-                }
-            };
-
-            recyclerView.setLayoutManager(linearLayoutManager);
-            recyclerView.setAdapter(itemAdapter);
-
-            final int itemCount = itemAdapter.getItemCount()*40;
-
-            tvSq.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    final int measuredHeight = recyclerView.getMeasuredHeight();
-
-                    ValueAnimator anim;
-
-                    if (measuredHeight != 0){
-                        anim = ValueAnimator.ofFloat(DisplayUtil.dip2px(mContext,itemCount), 0);
-                        tvSq.setText("展开");
-                    }else {
-                        anim = ValueAnimator.ofFloat(0, DisplayUtil.dip2px(mContext,itemCount));
-                        tvSq.setText("收起");
-                    }
-                    anim.setDuration(300);
-                    anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                        @Override
-                        public void onAnimationUpdate(ValueAnimator animation) {
-                            float currentValue = (float) animation.getAnimatedValue();
-                            long duration = animation.getDuration();
-                            LinearLayout.LayoutParams linearParams =(LinearLayout.LayoutParams) recyclerView.getLayoutParams();
-                            linearParams.height = (int)currentValue;// 控件的高强制设成20
-                            recyclerView.setLayoutParams(linearParams); //使设置好的布局参数应用到控件
-                        }
-                    });
-                    anim.start();
-                }
-            });
-
+        //提交事务
+        //  transaction.commit();
+        transaction.commitAllowingStateLoss();
+    }
+    /**
+     * 隐藏Fragment
+     *
+     * @param transaction
+     */
+    private void hideFragment(FragmentTransaction transaction) {
+        if (mTakeInorderFragment != null) {
+            transaction.hide(mTakeInorderFragment);
         }
-
+        if (mTakeOutorderFragment != null) {
+            transaction.hide(mTakeOutorderFragment);
+        } if (mOrderDtaFragment != null) {
+            transaction.hide(mOrderDtaFragment);
+        }
     }
 
-     //激光推送
+    /**
+     * 双击退出程序
+     * @param keyCode
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN){
+            if((System.currentTimeMillis()- exitTime) > 2000){
+                Toast.makeText(getApplicationContext(), "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                exitTime = System.currentTimeMillis();
+            } else {
+                finish();
+                System.exit(0);
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+
+
+    //激光推送
     public void upDeviceToken() {
 
         HashMap<String, Object> params = new HashMap<>();

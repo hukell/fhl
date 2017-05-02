@@ -48,43 +48,8 @@
             android:layout_height="wrap_content"/>
     </RelativeLayout>
 
-    <android.support.design.widget.TabLayout
-    android:id="@+id/tabs"
-    android:layout_width="match_parent"
-    android:layout_height="50dp"
-    android:background="@color/white"
-    app:tabIndicatorColor="@color/color_4e76e5"
-    app:tabSelectedTextColor="@color/color_4e76e5"
-    app:tabTextColor="@color/color_111111"/>
-
-    <View
-        android:id="@+id/gap"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="@color/line"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:text="4月24日待处理订单4单，总额123"
-        android:id="@+id/tv_price"
-        android:gravity="center"
-        android:textSize="12sp"
-        android:paddingTop="2dp"
-        android:textColor="@color/color_999999"
-        android:layout_height="30dp"/>
-
-
-    <android.support.v4.widget.SwipeRefreshLayout
-        android:layout_width="wrap_content"
-        android:id="@+id/refresh"
-        android:layout_height="wrap_content">
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/merchant_xrecyc"
-        android:layout_height="match_parent"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_width="match_parent"
-        />
-    </android.support.v4.widget.SwipeRefreshLayout>
-
+        android:id="@+id/replace"
+        android:layout_height="match_parent"></FrameLayout>
 </LinearLayout>

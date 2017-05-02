@@ -1,0 +1,60 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+              android:orientation="vertical"
+             tools:context="com.mb.fhl.ui.ChartFragment">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+     <TextView
+         android:layout_width="wrap_content"
+         android:textSize="12sp"
+         android:text="单"
+         android:layout_marginTop="40dp"
+         android:layout_marginLeft="20dp"
+         android:layout_height="wrap_content"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/lineChart"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"/>
+
+    </RelativeLayout>
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="20dp"
+        android:id="@+id/radiogroup"
+        android:layout_height="30dp">
+
+     <RadioButton
+         android:layout_width="wrap_content"
+         android:text="月"
+         android:id="@+id/ra_month"
+         android:checked="true"
+         android:button="@null"
+         android:textSize="14sp"
+         android:gravity="center"
+         android:background="@drawable/selector_button_color2"
+         android:layout_height="match_parent"/>
+
+        <RadioButton
+         android:layout_width="wrap_content"
+         android:text="季"
+         android:button="@null"
+         android:id="@+id/ra_quarter"
+         android:textSize="14sp"
+         android:gravity="center"
+         android:background="@drawable/selector_button_color3"
+         android:layout_height="match_parent"/>
+
+    </RadioGroup>
+
+
+
+</LinearLayout>

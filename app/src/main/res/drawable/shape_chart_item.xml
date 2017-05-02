@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 圆角 -->
+    <corners
+        android:topLeftRadius="5dp"
+        android:bottomLeftRadius="5dp"
+       /><!-- 设置圆角半径 -->
+
+    <solid
+        android:color="@color/color_e94d4e"/><!-- 填充的颜色 -->
+    <size
+        android:width="70dp"
+        android:height="20dp"/><!-- 宽度和高度 -->
+</shape>

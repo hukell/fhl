@@ -1,7 +1,9 @@
 package com.mb.fhl.base;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import butterknife.ButterKnife;
 
@@ -14,7 +16,8 @@ public abstract class BaseActivity extends AppCompatActivity {
 		setParams();
 		super.onCreate(savedInstanceState);
 		setContentView(getLayoutId());
-
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		Log.d("BaseActivity", getClass().getSimpleName());
 		ButterKnife.bind(this);
 		initView();
 		setAdapter();

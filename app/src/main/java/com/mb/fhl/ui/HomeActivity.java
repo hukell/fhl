@@ -226,7 +226,7 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
         @Override
         public void onBindViewHolder(ListHolder holder, final int position) {
 
-            holder.mTvTime.setText("期望送达时间"+TimeUtils.millis2String(data.get(position).transportimeint ,"HH:mm"));
+            holder.mTvTime.setText("期望送达时间"+TimeUtils.millis2String(((data.get(position).transportimeint)*1000) ,"HH:mm"));
             long time = data.get(position).transportimeint-TimeUtils.getNowTimeMills();
             if (time>0) {
                 holder.mTvTimeOver.setVisibility(View.VISIBLE);
