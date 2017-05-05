@@ -434,8 +434,8 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
             final TextView tvPsPhone = (TextView) helper.getView(R.id.tv_ps_phone);
             final TextView tvTime = (TextView) helper.getView(R.id.tv_time);
             final TextView tvStatus = (TextView) helper.getView(R.id.tv_status);
-            final Button tvRefundRight = (Button) helper.getView(R.id.refund_right);
-            final Button tvRefundLeft = (Button) helper.getView(R.id.refund_left);
+            final TextView tvRefundRight = (TextView) helper.getView(R.id.refund_right);
+            final TextView tvRefundLeft = (TextView) helper.getView(R.id.refund_left);
             final TextView tvDdh = (TextView) helper.getView(R.id.tv_ddh);
             final LinearLayout linPsName = (LinearLayout) helper.getView(R.id.lin_ps_name);
             final ImageView imgCall = (ImageView) helper.getView(R.id.img_call);
