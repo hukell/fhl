@@ -3,6 +3,7 @@ package com.mb.fhl.ui;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
@@ -14,8 +15,10 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
@@ -27,12 +30,14 @@ import com.mb.fhl.models.DateBean;
 import com.mb.fhl.models.Deliver;
 import com.mb.fhl.models.OutOrderBean;
 import com.mb.fhl.models.PhoneBean;
+import com.mb.fhl.models.ReFundBean;
 import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.net.Api;
 import com.mb.fhl.net.BaseSubscriber;
 import com.mb.fhl.utils.DialogUtils;
 import com.mb.fhl.utils.DisplayUtil;
 import com.mb.fhl.utils.RxBus;
+import com.mb.fhl.utils.T;
 import com.mb.fhl.utils.TimeUtils;
 import com.mb.fhl.utils.TypeUtils;
 import com.mb.fhl.utils.UserManager;
@@ -137,6 +142,7 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                     }
                 });
 
+
         mSubscribe3 = RxBus.getInstance().toObserverable(DateBean.class)
                 .subscribe(new Action1<DateBean>() {
                     @Override
@@ -152,6 +158,18 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
     @Override
     protected void initOperation() {
 
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (!mSubscribe1.isUnsubscribed()){
+            mSubscribe1.unsubscribe();
+        }if (!mSubscribe2.isUnsubscribed()){
+            mSubscribe2.unsubscribe();
+        }if (!mSubscribe3.isUnsubscribed()){
+            mSubscribe3.unsubscribe();
+        }
     }
 
     @Override
@@ -185,9 +203,9 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
 
     private void getStatus(int orderStytle) {
         if (orderStytle == 1) {
-            Titles = new String[]{"待处理", "进行中", "已完成"};
+            Titles = new String[]{"待处理", "进行中", "已完成","已取消"};
         } else {
-            Titles = new String[]{"进行中", "已完成"};
+            Titles = new String[]{"进行中", "已完成","已取消"};
         }
         for (int i = 0; i < Titles.length; i++) {
             mTabs.addTab(mTabs.newTab().setText(Titles[i])); //添加tab
@@ -206,9 +224,11 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
         } else if (tab.getText().equals("已完成")) {
             mOrderStatus = 3;
         }
+        else if(tab.getText().equals("已取消")){
+            mOrderStatus = 4;
+        }
         page = 1;
         getData();
-
     }
 
 
@@ -331,15 +351,19 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
         Api.getRetrofit().merchantOrderRefund(params)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean>(getActivity()) {
+                .subscribe(new BaseSubscriber<BaseBean<ReFundBean>>(getActivity()) {
                     @Override
-                    public void onNext(BaseBean baseBean) {
+                    public void onNext(BaseBean<ReFundBean> baseBean) {
                         super.onNext(baseBean);
-                        mOrderinfo.remove(point);
-                        pullToRefreshAdapter.notifyDataSetChanged();
+                        if (baseBean.getData().isRefund.equals("1")){
+                            T.showLong(getActivity(),"退款成功");
+                            mOrderinfo.remove(point);
+                            pullToRefreshAdapter.notifyDataSetChanged();
+                        }else {
+                            T.showLong(getActivity(),"退款失败");
+                        }
                     }
                 });
-
     }
 
 
@@ -387,8 +411,18 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
 
     public class MerchantAdapter extends BaseQuickAdapter<ShopBean.OrderinfoBean, BaseViewHolder> {
 
+        private final Drawable mDrawable;
+        private final Drawable mDrawable1;
+
         public MerchantAdapter(@LayoutRes int layoutResId, @Nullable List<ShopBean.OrderinfoBean> data) {
             super(layoutResId, data);
+
+            mDrawable =getResources().getDrawable(R.mipmap.img_sl);
+            mDrawable1 =getResources().getDrawable(R.mipmap.img_zk);
+
+            mDrawable.setBounds(0, 0, mDrawable.getMinimumWidth(), mDrawable.getMinimumHeight());
+            mDrawable1.setBounds(0, 0, mDrawable1.getMinimumWidth(), mDrawable1.getMinimumHeight());
+
         }
 
         @Override
@@ -400,11 +434,13 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
             final TextView tvPsPhone = (TextView) helper.getView(R.id.tv_ps_phone);
             final TextView tvTime = (TextView) helper.getView(R.id.tv_time);
             final TextView tvStatus = (TextView) helper.getView(R.id.tv_status);
-            final TextView tvRefundRight = (TextView) helper.getView(R.id.refund_right);
-            final TextView tvRefundLeft = (TextView) helper.getView(R.id.refund_left);
+            final Button tvRefundRight = (Button) helper.getView(R.id.refund_right);
+            final Button tvRefundLeft = (Button) helper.getView(R.id.refund_left);
             final TextView tvDdh = (TextView) helper.getView(R.id.tv_ddh);
             final LinearLayout linPsName = (LinearLayout) helper.getView(R.id.lin_ps_name);
             final ImageView imgCall = (ImageView) helper.getView(R.id.img_call);
+            final RelativeLayout reLeftRight = (RelativeLayout) helper.getView(R.id.re_left_right);
+
 
             tvDdh.setText("#" + item.serialnum); //流水号
             helper.setText(R.id.tv_zj, "￥" + item.goodstotal); //总价
@@ -437,9 +473,9 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                     }
                 });
 
-
                 switch (mOrderStatus) {
                     case 1:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("待处理");
                         tvRefundRight.setText("出菜");
                         tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
@@ -456,8 +492,11 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                                 DialogUtils.showPopPhoneDown((Activity) mContext, tvPsPhone, mDeliverlist, layoutPosition);
                             }
                         });
+                        tvPsPhone.setCompoundDrawables(null,null,mDrawable1,null);
+                        tvPsPhone.setBackgroundColor(getResources().getColor(R.color.color_e5e5e5));
                         break;
                     case 2:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("进行中");
                         tvRefundRight.setText("补打订单");
                         tvPsPhone.setClickable(false);
@@ -468,8 +507,11 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                                 merchantPrintOrder(layoutPosition, item.ordernum);
                             }
                         });
+                        tvPsPhone.setCompoundDrawables(null,null,null,null);
+                        tvPsPhone.setBackgroundColor(getResources().getColor(R.color.white));
                         break;
                     case 3:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("已完成");
                         tvRefundRight.setText("补打订单");
                         tvPsPhone.setClickable(false);
@@ -480,7 +522,19 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                                 merchantPrintOrder(layoutPosition, item.ordernum);
                             }
                         });
+
+                        tvPsPhone.setCompoundDrawables(null,null,null,null);
+                        tvPsPhone.setBackgroundColor(getResources().getColor(R.color.white));
                         break;
+
+                    case 4:
+                        reLeftRight.setVisibility(View.GONE);
+                        tvPsPhone.setClickable(false);
+                        tvStatus.setText("已取消");
+                        tvPsPhone.setCompoundDrawables(null,null,null,null);
+                        tvPsPhone.setBackgroundColor(getResources().getColor(R.color.white));
+                        break;
+
                 }
             } else if (mOrderStytle == 2) { //堂吃
                 tvTime.setVisibility(View.GONE);
@@ -490,11 +544,13 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                 helper.setText(R.id.tv_phone, "");
                 switch (mOrderStatus) {
                     case 1:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("待处理");
                         tvRefundRight.setText("出菜");
 
                         break;
                     case 2:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("进行中");
                         tvRefundRight.setText("出菜完成");
 
@@ -507,6 +563,7 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
 
                         break;
                     case 3:
+                        reLeftRight.setVisibility(View.VISIBLE);
                         tvStatus.setText("已完成");
                         tvRefundRight.setText("补打订单");
                         //打印订单
@@ -516,7 +573,11 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                                 merchantPrintOrder(layoutPosition, item.ordernum);
                             }
                         });
+                        break;
 
+                    case 4:
+                        reLeftRight.setVisibility(View.GONE);
+                        tvStatus.setText("已取消");
                         break;
                 }
             }
@@ -545,9 +606,11 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                     if (measuredHeight != 0) {
                         anim = ValueAnimator.ofFloat(DisplayUtil.dip2px(mContext, itemCount), 0);
                         tvSq.setText("展开");
+                        tvSq.setCompoundDrawables(null,null,mDrawable1,null);
                     } else {
                         anim = ValueAnimator.ofFloat(0, DisplayUtil.dip2px(mContext, itemCount));
                         tvSq.setText("收起");
+                        tvSq.setCompoundDrawables(null,null,mDrawable,null);
                     }
                     anim.setDuration(300);
                     anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {

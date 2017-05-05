@@ -23,6 +23,7 @@ public class OrderDataFragment extends BaseFragment implements TabLayout.OnTabSe
     private FragmentManager mFragmentManager;
     private ChartFragment mChartFragment;
     private String[] Titles;
+    private ChartListFragment mChartListFragment;
 
     public static OrderDataFragment newInstance() {
         Bundle bundle = new Bundle();
@@ -85,11 +86,11 @@ public class OrderDataFragment extends BaseFragment implements TabLayout.OnTabSe
                 }
                 break;
             case "数据":
-                if (mChartFragment == null) {
-                    mChartFragment = ChartFragment.newInstance();
-                    transaction.add(R.id.replace, mChartFragment);
+                if (mChartListFragment == null) {
+                    mChartListFragment = ChartListFragment.newInstance();
+                    transaction.add(R.id.replace, mChartListFragment);
                 } else {
-                    transaction.show(mChartFragment);
+                    transaction.show(mChartListFragment);
                 }
 
                 break;
@@ -107,6 +108,8 @@ public class OrderDataFragment extends BaseFragment implements TabLayout.OnTabSe
     private void hideFragment(FragmentTransaction transaction) {
         if (mChartFragment != null) {
             transaction.hide(mChartFragment);
+        } if (mChartListFragment != null) {
+            transaction.hide(mChartListFragment);
         }
     }
 

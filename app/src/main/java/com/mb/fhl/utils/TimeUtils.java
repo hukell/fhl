@@ -192,6 +192,8 @@ public class TimeUtils {
     public static String millis2String(long millis) {
         return new SimpleDateFormat(DEFAULT_PATTERN, Locale.getDefault()).format(new Date(millis));
     }
+
+
     /**
      * 将时间戳转为时间字符串
      * <p>格式为pattern</p>
@@ -209,14 +211,10 @@ public class TimeUtils {
      * @return 时间字符串
      */
     public static String millis2String2(String s) {
-     // return new SimpleDateFormat(DEFAULT2_PATTERN, Locale.getDefault()).format(new Date(millis));
+       long  millis = Long.parseLong(s)*1000;
 
-        String res;
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DEFAULT2_PATTERN);
-        long lt = new Long(s+"000");
-        Date date = new Date(lt);
-        res = simpleDateFormat.format(date);
-        return res;
+     return new SimpleDateFormat(DEFAULT2_PATTERN, Locale.getDefault()).format(new Date(millis));
+
     }
 
     /**

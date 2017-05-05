@@ -13,6 +13,8 @@ public class TypeUtils {
                 return "进行中";
             case 3:
                 return "已完成";
+            case 4:
+                return "已取消";
         }
         return "";
     }

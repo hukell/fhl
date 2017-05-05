@@ -72,6 +72,8 @@
             android:layout_width="wrap_content"
             android:id="@+id/tv_phone"
             android:textSize="14sp"
+            android:layout_marginLeft="5dp"
+            android:autoLink="phone"
             android:textColor="@color/color_4e76e5"
             android:layout_height="wrap_content"/>
 
@@ -113,8 +115,6 @@
                android:textColor="@color/color_666666"
                android:textSize="14sp"
                android:id="@+id/tv_ps_phone"
-               android:background="@color/color_e5e5e5"
-               android:drawableRight="@mipmap/img_xlh"
                android:gravity="center"
                android:paddingRight="20dp"
                android:layout_marginLeft="10dp"
@@ -163,7 +163,7 @@
                 android:textSize="14sp"
                 android:paddingLeft="15dp"
                 android:layout_alignParentRight="true"
-                android:drawableRight="@mipmap/img_sl"
+                android:drawableRight="@mipmap/img_zk"
                 android:layout_height="wrap_content"/>
 
         </RelativeLayout>
@@ -178,14 +178,13 @@
         <View
             android:layout_width="match_parent"
             android:background="@color/line"
-            android:layout_marginTop="15dp"
             android:layout_height="1px"/>
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:paddingLeft="15dp"
             android:paddingRight="15dp"
-            android:layout_height="30dp">
+            android:layout_height="40dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -217,9 +216,10 @@
              android:layout_width="match_parent"
              android:layout_margin="15dp"
              android:paddingTop="10dp"
+             android:id="@+id/re_left_right"
              android:layout_height="wrap_content">
 
-            <TextView
+            <Button
                 android:layout_width="wrap_content"
                 android:text="退款"
                 android:textColor="@color/white"
@@ -229,7 +229,7 @@
                 android:background="@drawable/shape_item"
                 android:layout_height="wrap_content"/>
 
-             <TextView
+             <Button
                 android:layout_width="wrap_content"
                 android:text="退款"
                 android:id="@+id/refund_right"

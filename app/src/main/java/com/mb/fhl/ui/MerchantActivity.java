@@ -1,54 +1,29 @@
 package com.mb.fhl.ui;
 
-import android.animation.ValueAnimator;
-import android.app.Activity;
-import android.app.Dialog;
-import android.content.Intent;
-import android.net.Uri;
-import android.support.annotation.LayoutRes;
-import android.support.annotation.Nullable;
-import android.support.design.widget.TabLayout;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.chad.library.adapter.base.BaseQuickAdapter;
-import com.chad.library.adapter.base.BaseViewHolder;
-import com.chad.library.adapter.base.listener.OnItemChildClickListener;
 import com.mb.fhl.R;
 import com.mb.fhl.base.BaseActivity;
 import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.ChangBean;
 import com.mb.fhl.models.DateBean;
-import com.mb.fhl.models.Deliver;
-import com.mb.fhl.models.OutOrderBean;
-import com.mb.fhl.models.PhoneBean;
-import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.net.Api;
 import com.mb.fhl.net.BaseSubscriber;
 import com.mb.fhl.utils.DialogUtils;
-import com.mb.fhl.utils.DisplayUtil;
 import com.mb.fhl.utils.ImageLoader;
 import com.mb.fhl.utils.RxBus;
 import com.mb.fhl.utils.TimeUtils;
-import com.mb.fhl.utils.TypeUtils;
 import com.mb.fhl.utils.UserManager;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
-
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
-
 import butterknife.Bind;
 import butterknife.OnClick;
 import cn.jpush.android.api.JPushInterface;
@@ -86,6 +61,7 @@ public class MerchantActivity extends BaseActivity implements
     private OrderFragment mTakeOutorderFragment;
     private OrderFragment mTakeInorderFragment;
     private OrderDataFragment mOrderDtaFragment;
+    private int mOrderStyle = 1;
 
     @Override
     protected int getLayoutId() {
@@ -94,7 +70,9 @@ public class MerchantActivity extends BaseActivity implements
 
     @Override
     protected void initView() {
-       //deviceToken 激光
+        mOrderStyle = getIntent().getIntExtra("orderStyle",1);
+
+        //deviceToken 激光
         mRegistrationID = JPushInterface.getRegistrationID(this);
         mFragmentManager = getSupportFragmentManager();
 
@@ -106,12 +84,13 @@ public class MerchantActivity extends BaseActivity implements
                 .subscribe(new Action1<ChangBean>() {
                     @Override
                     public void call(ChangBean changBean) {
-                        mTvChange.setText(changBean.mString);
-                        addFragment(changBean.mString);
+                        addFragment(changBean.orderStyle);
                     }
                 });
 
-        addFragment("外卖订单");
+        addFragment(mOrderStyle);
+
+        uploadRegistrationId();
 
     }
 
@@ -162,35 +141,41 @@ public class MerchantActivity extends BaseActivity implements
     /**
      * 添加Fragment
      */
-    public void addFragment(String i) {
+    public void addFragment(int i) {
         //开启一个事务
         FragmentTransaction transaction = mFragmentManager.beginTransaction();
         //先全部隐藏
         hideFragment(transaction);
         switch (i) {
-            case "外卖订单":
+            case 1:
                 if (mTakeOutorderFragment == null) {
                     mTakeOutorderFragment = OrderFragment.newInstance(1);
                     transaction.add(R.id.replace, mTakeOutorderFragment);
                 } else {
                     transaction.show(mTakeOutorderFragment);
                 }
+                mTvDate.setVisibility(View.VISIBLE);
+                mTvChange.setText("外卖订单");
                 break;
-            case "堂吃订单":
+            case 2:
                 if (mTakeInorderFragment == null) {
                     mTakeInorderFragment = OrderFragment.newInstance(2);
                     transaction.add(R.id.replace, mTakeInorderFragment);
                 } else {
                     transaction.show(mTakeInorderFragment);
                 }
+                mTvDate.setVisibility(View.VISIBLE);
+                mTvChange.setText("堂吃订单");
                 break;
-            case "销售数据":
+            case 3:
                 if (mOrderDtaFragment == null) {
                     mOrderDtaFragment = OrderDataFragment.newInstance();
                     transaction.add(R.id.replace, mOrderDtaFragment);
                 } else {
                     transaction.show(mOrderDtaFragment);
                 }
+                mTvDate.setVisibility(View.GONE);
+                mTvChange.setText("销售数据");
                 break;
         }
         //提交事务
@@ -235,13 +220,15 @@ public class MerchantActivity extends BaseActivity implements
     }
 
 
-
     //激光推送
-    public void upDeviceToken() {
+    public void uploadRegistrationId() {
 
         HashMap<String, Object> params = new HashMap<>();
         params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("deviceToken", mRegistrationID);
+        params.put("registrationId", mRegistrationID);
+        params.put("userType", 1);
+        params.put("type", 1);
+        params.put("token",UserManager.getIns().getUser().accessToken);
 
         Api.getRetrofit().upDeviceToken(params)
                 .subscribeOn(Schedulers.io())
@@ -253,13 +240,9 @@ public class MerchantActivity extends BaseActivity implements
                     @Override
                     public void onNext(BaseBean javaBean) {
                         super.onNext(javaBean);
-                        //  startActivity(new Intent(LoginActivity.this,HomeActivity.class));
-                        finish();
                     }
                 });
     }
-
-
 
 }
 

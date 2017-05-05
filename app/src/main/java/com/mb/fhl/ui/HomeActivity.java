@@ -3,13 +3,17 @@ package com.mb.fhl.ui;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.jcodecraeer.xrecyclerview.ProgressStyle;
 import com.jcodecraeer.xrecyclerview.XRecyclerView;
@@ -19,6 +23,7 @@ import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.OrderBean;
 import com.mb.fhl.net.Api;
 import com.mb.fhl.net.BaseSubscriber;
+import com.mb.fhl.utils.DialogUtils;
 import com.mb.fhl.utils.T;
 import com.mb.fhl.utils.TimeUtils;
 import com.mb.fhl.utils.UserManager;
@@ -26,8 +31,11 @@ import com.mb.fhl.utils.UserManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 import butterknife.Bind;
-import rx.Subscription;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import cn.jpush.android.api.JPushInterface;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -37,15 +45,19 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
     TabLayout mTabs;
     @Bind(R.id.activity_xrecyc)
     XRecyclerView mActivityXrecyc;
+    @Bind(R.id.float_button)
+    FloatingActionButton mFloatButton;
 
     private String[] Titles;
     private ContentLinearAdapter mAdapter;
-    private List<OrderBean.DataBean>  mData = new ArrayList<>();
+    private List<OrderBean.DataBean> mData = new ArrayList<>();
     private int status = 1;
     private int page = 1;
     private String type = "";
     private String orderId;
     private int mPot;
+    private String mRegistrationID;
+    private long exitTime;
 
     @Override
     protected int getLayoutId() {
@@ -54,7 +66,7 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
 
     @Override
     protected void initView() {
-
+        mRegistrationID = JPushInterface.getRegistrationID(this);
         Titles = new String[]{"待取货", "配送中", "已完成"};
 
         for (int i = 0; i < Titles.length; i++) {
@@ -64,20 +76,21 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
         mTabs.addOnTabSelectedListener(this);
         mTabs.getTabAt(0).select();
 
+        uploadRegistrationId();
+
         final LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         mActivityXrecyc.setLayoutManager(manager);
-        mAdapter = new ContentLinearAdapter(this,mData);
+        mAdapter = new ContentLinearAdapter(this, mData);
         mActivityXrecyc.setAdapter(mAdapter);
-        mActivityXrecyc.setRefreshProgressStyle(ProgressStyle.BallPulse );
-        mActivityXrecyc.setLoadingMoreProgressStyle(ProgressStyle.BallPulse );
+        mActivityXrecyc.setRefreshProgressStyle(ProgressStyle.BallPulse);
+        mActivityXrecyc.setLoadingMoreProgressStyle(ProgressStyle.BallPulse);
 
         mActivityXrecyc.setLoadingListener(new XRecyclerView.LoadingListener() {
             @Override
             public void onRefresh() {
-                if (type!=""){
+                if (type != "") {
                     getOrderStstus();
-                }
-                else {
+                } else {
                     page = 1;
                     getData();
                 }
@@ -102,13 +115,11 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
 
     @Override
     public void onTabSelected(TabLayout.Tab tab) {
-        if (tab.getText().equals("待取货")){
+        if (tab.getText().equals("待取货")) {
             status = 1;
-        }
-        else if (tab.getText().equals("配送中")){
+        } else if (tab.getText().equals("配送中")) {
             status = 2;
-        }
-        else if (tab.getText().equals("已完成")){
+        } else if (tab.getText().equals("已完成")) {
             status = 3;
         }
         mActivityXrecyc.refresh();
@@ -126,22 +137,23 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
     }
 
 
-    public void getData(){
+    public void getData() {
         HashMap<String, Object> params = new HashMap<>();
-        params.put("phoneNum",UserManager.getIns().getUser().phoneNum);
+        params.put("phoneNum", UserManager.getIns().getUser().phoneNum);
         params.put("state", status);
-        params.put("page",page);
-        params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("token",UserManager.getIns().getUser().accessToken);
+        params.put("page", page);
+        params.put("userId", UserManager.getIns().getUser().uid);
+        params.put("token", UserManager.getIns().getUser().accessToken);
         Api.getRetrofit().getOrderList(params)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new BaseSubscriber<BaseBean<OrderBean>>(HomeActivity.this){
+                .subscribe(new BaseSubscriber<BaseBean<OrderBean>>(HomeActivity.this) {
                     @Override
                     public void onCompleted() {
                         super.onCompleted();
                         mActivityXrecyc.refreshComplete();
                     }
+
                     @Override
                     public void onNext(BaseBean<OrderBean> orderBeanBaseBean) {
                         super.onNext(orderBeanBaseBean);
@@ -159,88 +171,96 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
                 });
     }
 
-    public void getOrderStstus(){
+    public void getOrderStstus() {
 
         HashMap<String, Object> params = new HashMap<>();
 
-        params.put("orderId",orderId);
-        params.put("phoneNum",UserManager.getIns().getUser().phoneNum);
+        params.put("orderId", orderId);
+        params.put("phoneNum", UserManager.getIns().getUser().phoneNum);
         params.put("type", type);
-        params.put("userId",UserManager.getIns().getUser().uid);
-        params.put("token",UserManager.getIns().getUser().accessToken);
+        params.put("userId", UserManager.getIns().getUser().uid);
+        params.put("token", UserManager.getIns().getUser().accessToken);
 
         String s = params.toString();
 
         Api.getRetrofit().dealOrder(params)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                 .subscribe(new BaseSubscriber<BaseBean>(HomeActivity.this){
-                     @Override
-                     public void onNext(BaseBean baseBean) {
-                         super.onNext(baseBean);
-                         type = "";
-                         mAdapter.data.remove(mPot);
-                         T.showLong(HomeActivity.this,"操作成功");
-                         mAdapter.notifyDataSetChanged();
-                         mActivityXrecyc.refreshComplete();
-                     }
+                .subscribe(new BaseSubscriber<BaseBean>(HomeActivity.this) {
+                    @Override
+                    public void onNext(BaseBean baseBean) {
+                        super.onNext(baseBean);
+                        type = "";
+                        mAdapter.data.remove(mPot);
+                        T.showLong(HomeActivity.this, "操作成功");
+                        mAdapter.notifyDataSetChanged();
+                        mActivityXrecyc.refreshComplete();
+                    }
 
-                     @Override
-                     public void onError(Throwable e) {
-                         super.onError(e);
-                         mActivityXrecyc.refreshComplete();
-                         type = "";
-                     }
+                    @Override
+                    public void onError(Throwable e) {
+                        super.onError(e);
+                        mActivityXrecyc.refreshComplete();
+                        type = "";
+                    }
 
-                     @Override
-                     public void onCompleted() {
-                         super.onCompleted();
-                         type = "";
-                     }
-                 });
+                    @Override
+                    public void onCompleted() {
+                        super.onCompleted();
+                        type = "";
+                    }
+                });
 
     }
 
-    private class ContentLinearAdapter extends RecyclerView.Adapter<ContentLinearAdapter.ListHolder>{
+
+    @OnClick(R.id.float_button)
+    public void onViewClicked() {
+        DialogUtils.submitLogOut(this);
+    }
+
+    private class ContentLinearAdapter extends RecyclerView.Adapter<ContentLinearAdapter.ListHolder> {
         private Context mContext;
-        public List<OrderBean.DataBean> data ;
-        public ContentLinearAdapter(Context context,List<OrderBean.DataBean> data) {
+        public List<OrderBean.DataBean> data;
+
+        public ContentLinearAdapter(Context context, List<OrderBean.DataBean> data) {
             mContext = context;
             this.data = data;
         }
 
-        public void resetData(List<OrderBean.DataBean> list){
-            if (page==1){
+        public void resetData(List<OrderBean.DataBean> list) {
+            if (page == 1) {
                 data = list;
-            }else {
+            } else {
                 data.addAll(list);
             }
             notifyDataSetChanged();
         }
+
         @Override
         public ListHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View  inflate = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycle_item_content1, null);
+            View inflate = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycle_item_content1, null);
             return new ListHolder(inflate);
         }
 
         @Override
         public void onBindViewHolder(ListHolder holder, final int position) {
 
-            holder.mTvTime.setText("期望送达时间"+TimeUtils.millis2String(((data.get(position).transportimeint)*1000) ,"HH:mm"));
-            long time = data.get(position).transportimeint-TimeUtils.getNowTimeMills();
-            if (time>0) {
+            holder.mTvTime.setText("期望送达时间" + TimeUtils.millis2String(((data.get(position).transportimeint) * 1000), "HH:mm"));
+            long time = data.get(position).transportimeint - TimeUtils.getNowTimeMills();
+            if (time > 0) {
                 holder.mTvTimeOver.setVisibility(View.VISIBLE);
                 holder.mTvTimeOver.setText((time / 60000) + "");
-            }else {
+            } else {
                 holder.mTvTimeOver.setVisibility(View.GONE);
             }
             holder.mTvName.setText(data.get(position).shopname);
             holder.mTvStarAddress.setText(data.get(position).takeadress);
             holder.mTvEndAddress.setText(data.get(position).destinationadress);
-            holder.mTvPhone.setText(data.get(position).customername+": "+data.get(position).customertel);
-            if (status==3){
+            holder.mTvPhone.setText(data.get(position).customername + ": " + data.get(position).customertel);
+            if (status == 3) {
                 holder.mTvSure.setBackgroundResource(R.drawable.shape_login_bg);
-            }else {
+            } else {
                 holder.mTvSure.setBackgroundResource(R.drawable.shape_login);
             }
             holder.mTvSure.setText(statusToStr(status));
@@ -251,13 +271,11 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
                     orderId = data.get(position).orderid;
                     mPot = position;
 
-                    if (status==3){
+                    if (status == 3) {
                         return;
-                    }
-                   else if (status==1){
+                    } else if (status == 1) {
                         type = "shipping";
-                    }
-                    else if (status==2){
+                    } else if (status == 2) {
                         type = "finish";
                     }
 
@@ -282,7 +300,7 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
             return data.size();
         }
 
-        class ListHolder extends RecyclerView.ViewHolder{
+        class ListHolder extends RecyclerView.ViewHolder {
 
             private final TextView mTvTime;
             private final TextView mTvName;
@@ -309,17 +327,66 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
 
     }
 
-    public String statusToStr(int status){
-        switch (status){
+    public String statusToStr(int status) {
+        switch (status) {
             case 1:
-              return "待取货";
+                return "点击确认取货";
             case 2:
-                return "配送中";
+                return "点击配送完成";
             case 3:
                 return "已完成";
         }
         return "未知状态";
 
     }
+
+    //激光推送
+    public void uploadRegistrationId() {
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("userId", UserManager.getIns().getUser().uid);
+        params.put("registrationId", mRegistrationID);
+        params.put("userType", 2);
+        params.put("type", 1);
+        params.put("token", UserManager.getIns().getUser().accessToken);
+
+        Api.getRetrofit().upDeviceToken(params)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseSubscriber<BaseBean>(HomeActivity.this) {
+                    @Override
+                    public void onStart() {
+                    }
+
+                    @Override
+                    public void onNext(BaseBean javaBean) {
+                        super.onNext(javaBean);
+                    }
+                });
+    }
+
+
+    /**
+     * 双击退出程序
+     *
+     * @param keyCode
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            if ((System.currentTimeMillis() - exitTime) > 2000) {
+                Toast.makeText(getApplicationContext(), "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                exitTime = System.currentTimeMillis();
+            } else {
+                finish();
+                System.exit(0);
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
 
 }

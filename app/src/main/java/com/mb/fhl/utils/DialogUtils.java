@@ -21,15 +21,21 @@ import android.widget.TextView;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.mb.fhl.R;
 import com.mb.fhl.adapter.PopDownAdapter;
+import com.mb.fhl.models.BaseBean;
 import com.mb.fhl.models.ChangBean;
 import com.mb.fhl.models.Deliver;
 import com.mb.fhl.models.OutOrderBean;
 import com.mb.fhl.models.PhoneBean;
-import com.mb.fhl.models.ShopBean;
+import com.mb.fhl.net.Api;
+import com.mb.fhl.net.BaseSubscriber;
 import com.mb.fhl.ui.LoginActivity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
@@ -123,9 +129,24 @@ public class DialogUtils {
         tvLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                UserManager.getIns().clearUserInfo();
-                activity.startActivity(new Intent(activity, LoginActivity.class));
-                activity.finish();
+
+                HashMap<String, Object> params = new HashMap<>();
+                params.put("userId", UserManager.getIns().getUser().uid);
+                params.put("token", UserManager.getIns().getUser().accessToken);
+                params.put("userType",UserManager.getIns().getUser().userType);
+
+                Api.getRetrofit().logoff(params)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new BaseSubscriber<BaseBean>(activity){
+                            @Override
+                            public void onNext(BaseBean baseBean) {
+                                super.onNext(baseBean);
+                                UserManager.getIns().clearUserInfo();
+                                activity.startActivity(new Intent(activity, LoginActivity.class));
+                                activity.finish();
+                            }
+                        });
             }
         });
 
@@ -161,12 +182,7 @@ public class DialogUtils {
         TextView tvLogout = (TextView) v.findViewById(R.id.tv_logout);
         TextView tvCansal = (TextView) v.findViewById(R.id.tv_cansal);
 
-        tvLogout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-             RxBus.getInstance().post(new OutOrderBean(layoutPosition,ordernum));
-            }
-        });
+
 
         // 创建自定义样式dialog
         final Dialog mLoadingDialog = new Dialog(activity, R.style.loading_dialog);
@@ -180,6 +196,14 @@ public class DialogUtils {
                 mLoadingDialog.dismiss();
             }
         });
+
+       tvLogout.setOnClickListener(new View.OnClickListener() {
+           @Override
+           public void onClick(View v) {
+               RxBus.getInstance().post(new OutOrderBean(layoutPosition,ordernum));
+               mLoadingDialog.dismiss();
+           }
+       });
 
         mLoadingDialog.setContentView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));

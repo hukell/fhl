@@ -1,8 +1,10 @@
 package com.mb.fhl.net;
 
 import com.mb.fhl.models.BaseBean;
+import com.mb.fhl.models.DayBean;
 import com.mb.fhl.models.Deliver;
 import com.mb.fhl.models.OrderBean;
+import com.mb.fhl.models.ReFundBean;
 import com.mb.fhl.models.ShopBean;
 import com.mb.fhl.models.User;
 
@@ -64,8 +66,7 @@ public interface  ApiService {
      */
     @FormUrlEncoded
     @POST("merchantOrderRefund")
-    Observable<BaseBean> merchantOrderRefund(@FieldMap HashMap<String, Object> params);
-
+    Observable<BaseBean<ReFundBean>> merchantOrderRefund(@FieldMap HashMap<String, Object> params);
      /**
      * 打印订单
      */
@@ -91,6 +92,17 @@ public interface  ApiService {
      * 上传设备id 推送用
       */
     @FormUrlEncoded
-    @POST("merchantCookingFinishEatinOrder")
+    @POST("uploadRegistrationId")
     Observable<BaseBean> upDeviceToken(@FieldMap HashMap<String, Object> params);
+
+     @FormUrlEncoded
+     @POST("logoff")
+    Observable<BaseBean> logoff(@FieldMap HashMap<String, Object> params);
+
+          /*
+          * *获得我的所有订单（商户）
+         */
+      @GET("getMerchantStat")
+      Observable<BaseBean<DayBean>> getMerchantStat(@QueryMap HashMap<String, Object> params);
+
 }

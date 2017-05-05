@@ -6,8 +6,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.mb.fhl.ui.HomeActivity;
+import com.mb.fhl.ui.MerchantActivity;
 import com.mb.fhl.utils.ConstUtils;
 import com.mb.fhl.utils.RxBus;
+import com.mb.fhl.utils.UserManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,18 +56,19 @@ public class MyReceiver extends BroadcastReceiver {
 			String type = bundle.getString(JPushInterface.EXTRA_EXTRA);
 			try {
 				JSONObject jsonObject = new JSONObject(type);
-				String str = jsonObject.getString("type");
-				if (str.equals("1")) {
-					/*//打开自定义的Activity
-					Intent i = new Intent(context, TripDetailActivity.class);
-					i.putExtra("sn",jsonObject.getString("id"));
-
-					//i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				String userType = jsonObject.getString("userType");
+				String orderStyle = jsonObject.getString("orderStyle");
+				if (userType.equals("1") && UserManager.getIns().getUser().userType.equals("1")) {
+					//打开自定义的Activity
+					Intent i = new Intent(context, MerchantActivity.class);
+					i.putExtra("orderStyle",Integer.parseInt(orderStyle));
 					i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP );
-					context.startActivity(i);*/
+					context.startActivity(i);
 				}
-				else if (str.equals("2") || str.equals("3")) {
-
+				else if (userType.equals("2")&& UserManager.getIns().getUser().userType.equals("2")) {
+					Intent i = new Intent(context, HomeActivity.class);
+					i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP );
+					context.startActivity(i);
 				}
 			} catch (JSONException e) {
 				e.printStackTrace();
