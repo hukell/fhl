@@ -94,7 +94,6 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
                     page = 1;
                     getData();
                 }
-
             }
 
             @Override
@@ -105,7 +104,6 @@ public class HomeActivity extends BaseActivity implements TabLayout.OnTabSelecte
         });
 
         mActivityXrecyc.refresh();
-
     }
 
     @Override

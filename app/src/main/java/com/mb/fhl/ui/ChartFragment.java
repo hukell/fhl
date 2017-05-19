@@ -30,7 +30,6 @@ import rx.schedulers.Schedulers;
 
 public class ChartFragment extends BaseFragment implements RadioGroup.OnCheckedChangeListener{
 
-
     @Bind(R.id.lineChart)
     LineChart mLineChart;
     @Bind(R.id.radiogroup)

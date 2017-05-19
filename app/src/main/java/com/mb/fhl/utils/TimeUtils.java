@@ -212,7 +212,6 @@ public class TimeUtils {
      */
     public static String millis2String2(String s) {
        long  millis = Long.parseLong(s)*1000;
-
      return new SimpleDateFormat(DEFAULT2_PATTERN, Locale.getDefault()).format(new Date(millis));
 
     }

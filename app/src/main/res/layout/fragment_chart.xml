@@ -1,10 +1,87 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
              xmlns:tools="http://schemas.android.com/tools"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
-              android:orientation="vertical"
+             android:background="@mipmap/td_chart_tc"
              tools:context="com.mb.fhl.ui.ChartFragment">
+    <TextView
+        android:layout_width="wrap_content"
+        android:text="今日营业额(元)"
+        android:textColor="@color/color_666666"
+        android:textSize="14sp"
+        android:layout_marginTop="28sp"
+        android:layout_centerHorizontal="true"
+        android:layout_height="wrap_content"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:text="1587"
+        android:textColor="@color/color_222222"
+        android:textSize="30sp"
+        android:layout_marginTop="55sp"
+        android:layout_centerHorizontal="true"
+        android:layout_height="wrap_content"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_marginTop="120dp"
+        android:orientation="horizontal"
+        android:layout_height="wrap_content">
+     <TextView
+         android:layout_width="0dp"
+         android:layout_weight="1"
+         android:text="今日外卖单数"
+         android:textColor="@color/color_666666"
+         android:textSize="14sp"
+         android:gravity="center"
+         android:layout_height="wrap_content"/>
+
+        <TextView
+         android:layout_width="0dp"
+         android:layout_weight="1"
+         android:text="今日外卖单数"
+         android:textColor="@color/color_666666"
+         android:textSize="14sp"
+         android:gravity="center"
+         android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_marginTop="150dp"
+        android:orientation="horizontal"
+        android:id="@+id/lin_dan"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="888"
+            android:textColor="@color/color_000000"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="898"
+            android:textColor="@color/color_000000"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_centerInParent="true"
+             android:layout_below="@id/lin_dan"
+             android:layout_marginTop="20dp"
+              android:orientation="vertical"
+             >
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="300dp">
@@ -32,7 +109,7 @@
         android:id="@+id/lineChart"
         android:layout_width="match_parent"
         android:layout_marginRight="20dp"
-        android:layout_height="300dp"/>
+        android:layout_height="297dp"/>
 
     </RelativeLayout>
 
@@ -47,6 +124,7 @@
      <RadioButton
          android:layout_width="wrap_content"
          android:text="日"
+         android:textColor="@color/color_222222"
          android:id="@+id/ra_month"
          android:checked="true"
          android:button="@null"
@@ -58,6 +136,7 @@
         <RadioButton
          android:layout_width="wrap_content"
          android:text="月"
+         android:textColor="@color/color_222222"
          android:button="@null"
          android:id="@+id/ra_quarter"
          android:textSize="14sp"
@@ -67,6 +146,5 @@
 
     </RadioGroup>
 
-
-
 </LinearLayout>
+    </RelativeLayout>

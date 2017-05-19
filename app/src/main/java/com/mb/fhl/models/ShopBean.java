@@ -49,6 +49,9 @@ public class ShopBean {
         public String customertel;
         public String goodstotal;
         public String orderaddress;
+        public String remark;
+        public String reservation_eating_time;
+        public String reservation_persons;
 
         public String orderstatus;
         public int orderStyle;

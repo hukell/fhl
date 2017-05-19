@@ -70,6 +70,7 @@ public class MyReceiver extends BroadcastReceiver {
 					i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP );
 					context.startActivity(i);
 				}
+
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}

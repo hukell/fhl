@@ -6,8 +6,9 @@
         android:bottomLeftRadius="5dp"
        /><!-- 设置圆角半径 -->
 
-    <solid
-        android:color="@color/color_666666"/><!-- 填充的颜色 -->
+    <stroke
+        android:width="1px"
+        android:color="@color/color_4e76e5"/>
     <size
         android:width="70dp"
         android:height="20dp"/><!-- 宽度和高度 -->

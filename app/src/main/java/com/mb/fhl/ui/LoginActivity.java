@@ -105,7 +105,6 @@ public class LoginActivity extends BaseActivity {
         params.put("type",1);
         params.put("userType",mUserType);
 
-
         Api.getRetrofit().login(params)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())

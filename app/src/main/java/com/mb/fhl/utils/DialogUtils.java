@@ -50,6 +50,7 @@ public class DialogUtils {
         ViewGroup menuView = (ViewGroup) mLayoutInflater.inflate(R.layout.title_down, null, true);
         TextView tvWm = (TextView) menuView.findViewById(R.id.tv_wm);
         TextView tvTc = (TextView) menuView.findViewById(R.id.tv_tc);
+        TextView tvYd = (TextView) menuView.findViewById(R.id.tv_yd);
         TextView tvOrderData = (TextView) menuView.findViewById(R.id.tv_order_data);
 
         PopupWindow pw = new PopupWindow(menuView, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -66,6 +67,7 @@ public class DialogUtils {
 
         tvWm.setOnClickListener(new TvListener(pw));
         tvTc.setOnClickListener(new TvListener(pw));
+        tvYd.setOnClickListener(new TvListener(pw));
         tvOrderData.setOnClickListener(new TvListener(pw));
 
         int screenWidth = ScreenUtils.getScreenWidth()/2; //获取屏幕的宽度
@@ -238,7 +240,11 @@ public class DialogUtils {
                     pw.dismiss();
                     break;
                 case R.id.tv_order_data:
-                    RxBus.getInstance().post(new ChangBean("销售数据",3));
+                    RxBus.getInstance().post(new ChangBean("销售数据",4));
+                    pw.dismiss();
+                    break;
+                case R.id.tv_yd:
+                    RxBus.getInstance().post(new ChangBean("堂吃订单",3));
                     pw.dismiss();
                     break;
             }

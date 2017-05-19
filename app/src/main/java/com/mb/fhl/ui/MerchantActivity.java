@@ -61,7 +61,8 @@ public class MerchantActivity extends BaseActivity implements
     private OrderFragment mTakeOutorderFragment;
     private OrderFragment mTakeInorderFragment;
     private OrderDataFragment mOrderDtaFragment;
-    private int mOrderStyle = 1;
+    private int mOrderStyle = 2;
+    private OrderFragment mAdvanceInorderFragment;
 
     @Override
     protected int getLayoutId() {
@@ -70,7 +71,7 @@ public class MerchantActivity extends BaseActivity implements
 
     @Override
     protected void initView() {
-        mOrderStyle = getIntent().getIntExtra("orderStyle",1);
+        mOrderStyle = getIntent().getIntExtra("orderStyle",2);
 
         //deviceToken 激光
         mRegistrationID = JPushInterface.getRegistrationID(this);
@@ -87,11 +88,8 @@ public class MerchantActivity extends BaseActivity implements
                         addFragment(changBean.orderStyle);
                     }
                 });
-
         addFragment(mOrderStyle);
-
         uploadRegistrationId();
-
     }
 
     @Override
@@ -167,7 +165,7 @@ public class MerchantActivity extends BaseActivity implements
                 mTvDate.setVisibility(View.VISIBLE);
                 mTvChange.setText("堂吃订单");
                 break;
-            case 3:
+            case 4:
                 if (mOrderDtaFragment == null) {
                     mOrderDtaFragment = OrderDataFragment.newInstance();
                     transaction.add(R.id.replace, mOrderDtaFragment);
@@ -177,6 +175,17 @@ public class MerchantActivity extends BaseActivity implements
                 mTvDate.setVisibility(View.GONE);
                 mTvChange.setText("销售数据");
                 break;
+            case 3:
+                if (mAdvanceInorderFragment == null) {
+                    mAdvanceInorderFragment = OrderFragment.newInstance(3);
+                    transaction.add(R.id.replace, mAdvanceInorderFragment);
+                } else {
+                    transaction.show(mAdvanceInorderFragment);
+                }
+                mTvDate.setVisibility(View.VISIBLE);
+                mTvChange.setText("预定订单");
+                break;
+
         }
         //提交事务
         //  transaction.commit();
@@ -195,6 +204,8 @@ public class MerchantActivity extends BaseActivity implements
             transaction.hide(mTakeOutorderFragment);
         } if (mOrderDtaFragment != null) {
             transaction.hide(mOrderDtaFragment);
+        }if (mAdvanceInorderFragment != null) {
+            transaction.hide(mAdvanceInorderFragment);
         }
     }
 

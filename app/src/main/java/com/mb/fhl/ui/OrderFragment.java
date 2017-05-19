@@ -12,6 +12,7 @@ import android.support.design.widget.TabLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -138,6 +139,7 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                 .subscribe(new Action1<OutOrderBean>() {
                     @Override
                     public void call(OutOrderBean OutOrderBean) {
+                        Log.i("54654654654","退款");
                         merchantOrderRefund(OutOrderBean.layoutPosition, OutOrderBean.ordernum);
                     }
                 });
@@ -176,10 +178,9 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
         if (hidden) {
-            System.out.println("不可见");
 
         } else {
-            System.out.println("当前可见");
+
         }
     }
 
@@ -204,8 +205,10 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
     private void getStatus(int orderStytle) {
         if (orderStytle == 1) {
             Titles = new String[]{"待处理", "进行中", "已完成","已取消"};
+            mOrderStatus = 1;
         } else {
             Titles = new String[]{"进行中", "已完成","已取消"};
+            mOrderStatus = 2;
         }
         for (int i = 0; i < Titles.length; i++) {
             mTabs.addTab(mTabs.newTab().setText(Titles[i])); //添加tab
@@ -315,7 +318,6 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                     }
                 });
     }
-
 
     //商户确认外卖订单
     public void ConfirmTakeoutOrder(final int point, String ordernum, String deliverid) {
@@ -541,7 +543,7 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                 helper.setText(R.id.tv_address, item.eatin.shopname + "  " + item.eatin.tablenumber + "桌");
                 linPsName.setVisibility(View.GONE);
                 helper.setText(R.id.tv_name, item.customername); //顾客名字
-                helper.setText(R.id.tv_phone, "");
+                helper.setText(R.id.tv_phone, item.customertel);
                 switch (mOrderStatus) {
                     case 1:
                         reLeftRight.setVisibility(View.VISIBLE);
@@ -581,6 +583,56 @@ public class OrderFragment extends BaseFragment implements TabLayout.OnTabSelect
                         break;
                 }
             }
+
+            else if (mOrderStytle == 3) { //预定
+                helper.setText(R.id.tv_address, item.customertel + "  备注：" + ( item.remark.toString().length()==0?"(无)":item.remark));
+                linPsName.setVisibility(View.GONE);
+                helper.setText(R.id.tv_name, item.customername+"  (人数:"+item.reservation_persons+")"); //顾客名字
+
+                tvTime.setVisibility(View.VISIBLE);
+                tvTime.setText("预定时间:"+TimeUtils.millis2String2(item.reservation_eating_time));
+                switch (mOrderStatus) {
+                    case 1:
+                        reLeftRight.setVisibility(View.VISIBLE);
+                        tvStatus.setText("待处理");
+                        tvRefundRight.setText("出菜");
+
+                        break;
+                    case 2:
+                        reLeftRight.setVisibility(View.VISIBLE);
+                        tvStatus.setText("进行中");
+                        tvRefundRight.setText("出菜完成");
+
+                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                            @Override
+                            public void onClick(View v) {
+                                merchantCookingFinishEatinOrder(layoutPosition, item.ordernum);
+                            }
+                        });
+
+                        break;
+                    case 3:
+                        reLeftRight.setVisibility(View.VISIBLE);
+                        tvStatus.setText("已完成");
+                        tvRefundRight.setText("补打订单");
+                        //打印订单
+                        tvRefundRight.setOnClickListener(new View.OnClickListener() {  //点击出菜
+                            @Override
+                            public void onClick(View v) {
+                                merchantPrintOrder(layoutPosition, item.ordernum);
+                            }
+                        });
+                        break;
+                    case 4:
+                        reLeftRight.setVisibility(View.GONE);
+                        tvStatus.setText("已取消");
+                        break;
+                }
+            }
+
+
+
+
 
             ItemAdapter itemAdapter = new ItemAdapter(mContext, item.goods);
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(mContext, LinearLayoutManager.VERTICAL, false) {
